@@ -91,85 +91,52 @@ def tg_get_file_bytes(file_id: str) -> bytes:
 # -------------------------------------------------------------------
 # Fluxo de Financiamento
 # -------------------------------------------------------------------
-def get_financing_message(financiamento_status, tipo_escolhido):
-    if financiamento_status is True:
-        if tipo_escolhido:
-            return (f"Perfeito ({tipo_escolhido.capitalize()}). "
-                    "Um de nossos especialistas entrará em contato para falar sobre as opções de crédito.")
-        return "Interesse em financiamento registrado. Um especialista entrará em contato."
-    return "Pagamento finalizado."
-
-def processar_resposta_financiamento(chat_id, source_id, resposta_sim):
-    if resposta_sim:
-        keyboard = {
-            "inline_keyboard": [[
-                {"text": "🚗 Automóvel", "callback_data": "tipo_automovel"},
-                {"text": "🏠 Imóvel", "callback_data": "tipo_imovel"}
-            ]]
-        }
-        tg_send_message_with_keyboard(chat_id, "Ótimo! Esse financiamento seria para automóvel ou imóvel?", keyboard)
-        user_states[source_id] = "awaiting_property_type"
-    else:
-        tg_send_message(chat_id, get_financing_message(False, None))
-        user_states.pop(source_id, None)
-
 def processar_tipo_financiamento(chat_id, source_id, tipo_escolhido):
     if tipo_escolhido == "tipo_automovel":
-        tipo_normalizado = "Automóvel"
+        tipo_normalizado = "Auto"
     elif tipo_escolhido == "tipo_imovel":
         tipo_normalizado = "Imóvel"
     else:
         t = (tipo_escolhido or "").lower().strip()
         tipo_normalizado = None
-        if t in ("automovel", "automóvel", "carro"):
-            tipo_normalizado = "Automóvel"
+        if t in ("automovel", "Auto", "carro"):
+            tipo_normalizado = "Auto"
         elif t in ("imovel", "imóvel", "casa", "apto", "apartamento"):
             tipo_normalizado = "Imóvel"
 
     to_eng = {
-        "Automóvel": "automobile",
+        "Auto": "automobile",
         "Imóvel": "property"
     }
     
     verify_state[source_id]['financing_type'] = to_eng[tipo_normalizado]
 
     if not tipo_normalizado:
-        tg_send_message(chat_id, f"Não entendi a opção '{tipo_escolhido}'. Use os botões.")
+        tg_send_message(chat_id, f"Não entendi sua resposta. Por favor, selecione uma das opções acima pra eu continuar.")
         return
 
     user_states[source_id] = f"tipo_escolhido_{tipo_normalizado}"
-    tg_send_message(chat_id,
-        f"Perfeito! Para {tipo_normalizado}, qual o valor aproximado que você gostaria de financiar? "
-        "(Digite apenas o número, ex: 50000)"
-    )
+    tg_send_message(chat_id, "Para entender melhor, qual era o valor do financiamento antes dos juros?")
 
 def processar_escolha_valor(chat_id, source_id, valor_texto):
     try:
         valor_limpo = ''.join(c for c in valor_texto if c.isdigit() or c in '.,')
         if not valor_limpo:
-            tg_send_message(chat_id, "❌ Por favor, digite um valor numérico válido. Ex.: 50000 ou 50.000")
+            tg_send_message(chat_id, "Opa, acho que não entendi o valor. Pode me mandar só o número que representa quanto foi financiado?")
             return
         valor_limpo = valor_limpo.replace(',', '.')
         valor_numerico = float(valor_limpo)
         if valor_numerico <= 0:
-            tg_send_message(chat_id, "❌ O valor deve ser maior que zero. Tente novamente.")
+            tg_send_message(chat_id, "Acho que teve um engano. O valor do financiamento precisa ser maior que zero. Pode tentar novamente?")
             return
     except ValueError:
-        tg_send_message(chat_id, "❌ Por favor, digite um valor numérico válido. Ex.: 50000 ou 50.000")
+        tg_send_message(chat_id, "Ih, parece que aconteceu um erro por aqui. Me manda de novo o valor financiado pra eu conseguir seguir contigo?")
         return
 
-    estado_anterior = user_states.get(source_id, "")
-    tipo_escolhido = "financiamento"
-    if estado_anterior.startswith("tipo_escolhido_"):
-        tipo_escolhido = estado_anterior.replace("tipo_escolhido_", "")
 
-    valor_formatado = f"R$ {valor_numerico:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
-    mensagem_final = (f"Perfeito! Registramos seu interesse em financiamento para {tipo_escolhido} "
-                      f"no valor de {valor_formatado}. "
-                      "Um de nossos especialistas entrará em contato para falar sobre as opções de crédito.")
     user_varify_state = verify_state.get(source_id, {})
     if not user_varify_state:
-        tg_send_message(chat_id, "❌ Ocorreu um erro interno. Por favor, inicie o processo novamente.")
+        tg_send_message(chat_id, "Ih, parece que aconteceu um erro por aqui. Pode me mandar o documento novamente?")
         user_states.pop(source_id, None)
         return
     
@@ -196,7 +163,7 @@ def processar_arquivo(file_id: str, chat_id: int, source_id: int, attachment_typ
         attachment_type=attachment_type,
         attachment_data=b64,
     )
-    tg_send_message(chat_id, "✅ Arquivo recebido e enviado para processamento.")
+    tg_send_message(chat_id, "Estou lendo a sua imagem, aguarde só um momento.")
 
 # -------------------------------------------------------------------
 # WEBHOOK TELEGRAM
@@ -222,13 +189,15 @@ def telegram_webhook():
         processing_chats.add(chat_id)
         tg_disable_keyboard_immediately(chat_id, message_id)
 
-        if data in ("financiamento_sim", "financiamento_nao"):
-            resposta_sim = (data == "financiamento_sim")
-            tg_edit_message_keyboard(chat_id, message_id, f"Resposta: {'✅ Sim' if resposta_sim else '❌ Não'}")
-            processar_resposta_financiamento(chat_id, source_id, resposta_sim)
-        elif data in ("tipo_automovel", "tipo_imovel"):
-            tipo_label = "Automóvel" if data == "tipo_automovel" else "Imóvel"
-            tg_edit_message_keyboard(chat_id, message_id, f"✅ Escolhido: {tipo_label}")
+        if data == "financiamento_nao":
+            tg_send_message(chat_id, "Pagamento confirmado! Que bom ver tudo certo por aqui!")
+            user_states.pop(source_id, None)
+            processing_chats.discard(chat_id)
+            requests.post(f"{TELEGRAM_API}/answerCallbackQuery",
+                        json={"callback_query_id": callback_id}, timeout=15)
+            return jsonify(success=True)
+
+        if data in ("tipo_automovel", "tipo_imovel"):
             processar_tipo_financiamento(chat_id, source_id, data)
 
         processing_chats.discard(chat_id)
@@ -248,23 +217,10 @@ def telegram_webhook():
         processar_escolha_valor(chat_id, source_id, (msg["text"] or "").strip())
         return jsonify(success=True)
 
-    # Comando /financiamento
-    if "text" in msg and not (state and state.startswith("tipo_escolhido_")):
-        text = (msg["text"] or "").strip()
-        if text == "/financiamento":
-            keyboard = {"inline_keyboard": [[
-                {"text": "✅ Sim", "callback_data": "financiamento_sim"},
-                {"text": "❌ Não", "callback_data": "financiamento_nao"}]]}
-            tg_send_message_with_keyboard(chat_id, "Gostaria de fazer um financiamento?", keyboard)
-            user_states[source_id] = "awaiting_finance_reply"
-        else:
-            tg_send_message(chat_id, "Recebi o texto. Envie uma foto ou um PDF, ou digite /financiamento.")
-        return jsonify(success=True)
-
     # Foto
     if "photo" in msg:
         if state:
-            tg_send_message(chat_id, "Por favor, termine a conversa anterior antes de enviar um novo arquivo.")
+            tg_send_message(chat_id, "Recebi um novo arquivo! Mas antes de continuar com ele, preciso terminar essa parte da conversa. Pode me confirmar as informações primeiro?")
             return jsonify(success=True)
         file_id = msg["photo"][-1]["file_id"]
         processar_arquivo(file_id, chat_id, source_id, "image")
@@ -273,7 +229,7 @@ def telegram_webhook():
     # Documento
     if "document" in msg:
         if state:
-            tg_send_message(chat_id, "Por favor, termine a conversa anterior antes de enviar um novo arquivo.")
+            tg_send_message(chat_id, "Recebi um novo arquivo! Mas antes de continuar com ele, preciso terminar essa parte da conversa. Pode me confirmar as informações primeiro?")
             return jsonify(success=True)
         file_id = msg["document"]["file_id"]
         processar_arquivo(file_id, chat_id, source_id, "document")
@@ -300,18 +256,17 @@ def processar_dados():
         if not source_id or not agent_analysis:
             return jsonify({"erro": "source_id e agent_analysis são obrigatórios"}), 400
         keyboard = {"inline_keyboard": [[
-            {"text": "🚗 Automóvel", "callback_data": "tipo_automovel"},
-            {"text": "🏠 Imóvel", "callback_data": "tipo_imovel"}]]}
+            {"text": "Imóvel 🏠", "callback_data": "tipo_imovel"},
+            {"text": "Auto 🚗", "callback_data": "tipo_automovel"},
+            {"text": "Não tenho interesse", "callback_data": "financiamento_nao"}
+        ]]}
         tg_send_message_with_keyboard(chat_id,
-            "Olá! Identificamos uma oportunidade. Esse financiamento seria para automóvel ou imóvel?", keyboard)
+            "Percebemos que esse pagamento pode estar relacionado a um financiamento. Caso seja, você poderia me dizer de qual tipo? Assim posso buscar oportunidades para reduzir o valor das suas parcelas!", keyboard)
         user_states[source_id] = "awaiting_property_type"
         return jsonify({"status": "sucesso",
                         "mensagem": f"Fluxo iniciado para source_id {source_id}"}), 200
 
-    mensagem_resposta = get_financing_message(False, None)
-    if chat_id:
-        tg_send_message(chat_id, f"Olá! Uma atualização da API: {mensagem_resposta}")
-    return jsonify({"status": "sucesso", "mensagem": mensagem_resposta, "dados_processados": data}), 200
+    return jsonify({"status": "sucesso", "mensagem": "Pagamento confirmado! Que bom ver tudo certo por aqui!", "dados_processados": data}), 200
 
 # -------------------------------------------------------------------
 # API /send_message
