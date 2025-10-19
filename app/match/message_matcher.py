@@ -71,9 +71,10 @@ class MessageMatcher:
         remaining_installments = installment_count - current_installment_number + 1
         
         if system_type == 'SAC':
-            # SAC: amortização constante
+            # SAC: amortização constante, saldo devedor calculado corretamente
             amortization = total_value / installment_count
-            remaining_amount = amortization * remaining_installments
+            parcelas_pagas = current_installment_number - 1  # Parcelas já pagas
+            remaining_amount = total_value - (parcelas_pagas * amortization)
         else:  # PRICE system
             # Saldo = PMT × [1 - (1+i)^(-n)] / i
             r = monthly_rate / 100  # Convert percentage to decimal
