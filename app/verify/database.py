@@ -117,8 +117,8 @@ class DatabaseManager:
             self.db.execute(
                 """
                 INSERT INTO bank_financing_offers
-                    (bank_id, user_id, month, year, installments_count, type)
-                VALUES (%s, %s, %s, %s, %s, 'UNKNOWN')
+                    (bank_id, user_id, month, year, installments_count)
+                VALUES (%s, %s, %s, %s, %s)
                 """,
                 (bank_id, user_id, month, year, installments_count)
             )
