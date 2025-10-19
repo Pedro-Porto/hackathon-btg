@@ -35,7 +35,7 @@ class EnrichWorker:
         self.output_topic = output_topic
         self.database_enricher = database_enricher
         self.message_enricher = MessageEnricher(database_enricher)
-        print(f"✅ EnrichWorker pronto. IN={self.input_topic} OUT={self.output_topic} BROKER={kafka_broker} GROUP={group_id}")
+        print(f"EnrichWorker pronto. IN={self.input_topic} OUT={self.output_topic} BROKER={kafka_broker} GROUP={group_id}")
 
     def process_message(self, topic: str, data: Dict[str, Any]):
         print(f"[MSG] recebido de '{topic}': {data}")
@@ -50,16 +50,16 @@ class EnrichWorker:
             print(f"[ERRO] process_message: {e}")
 
     def start(self):
-        print("▶️  Iniciando EnrichWorker...")
+        print("Iniciando EnrichWorker...")
         print(f"→ Subscribing: {self.input_topic}")
         self.kafka_client.subscribe(self.input_topic)
         try:
             self.kafka_client.loop(self.process_message)
         except KeyboardInterrupt:
-            print("\n⛔ Encerrando por KeyboardInterrupt...")
+            print("\nEncerrando por KeyboardInterrupt...")
         finally:
             self.database_enricher.close()
-            print("🏁 Worker finalizado.")
+            print("Worker finalizado.")
 
 
 def main():
@@ -76,10 +76,10 @@ def main():
         "password": os.getenv("PGPASSWORD", "postgres"),
     }
 
-    print("🔌 Inicializando Database...")
+    print("Inicializando Database...")
     db = Database(**DB_CONFIG)
 
-    print("🧠 Inicializando DatabaseEnricher...")
+    print("Inicializando DatabaseEnricher...")
     db_enricher = DatabaseEnricher(db)
 
     worker = EnrichWorker(
