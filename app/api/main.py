@@ -190,7 +190,7 @@ def processar_dados():
     agent_analysis = data.get("agent_analysis")
     trigger_recommendation = data.get("trigger_recommendation")
     financiamento = data.get("financiamento", False)
-    chat_id = data.get("chat_id")
+    chat_id = source_id
 
     if trigger_recommendation is True:
         if not source_id or not agent_analysis:
