@@ -100,6 +100,61 @@ services:
     volumes:
       - ./app:/app
 
+  verify:
+    build: .
+    container_name: verify
+    working_dir: /app/verify
+    command: python -u worker_manager.py
+    environment:
+      - KAFKA_BROKER_URL=kafka:9092
+      - INPUT_TOPIC=btg.interpreted
+      - GROUP_ID=btg-verify-worker-group
+      - WORKER_COUNT=1
+      - PGHOST=postgres
+      - PGPORT=5432
+      - PGDATABASE=postgres
+      - PGUSER=postgres
+      - PGPASSWORD=postgres
+      - POST_URL=https://webhook.pedro-porto.com/api/processar
+      - LLM_PROVIDER=ollama
+      - LLM_MODEL=qwen2.5:7b-instruct
+      - LLM_TEMPERATURE=0.3
+      - OLLAMA_BASE_URL=https://ollama.pedro-porto.com
+    depends_on:
+      - kafka
+      - postgres
+    restart: unless-stopped
+    volumes:
+      - ./app:/app
+
+  matcher:
+    build: .
+    container_name: matcher
+    working_dir: /app/matcher
+    command: python -u main.py
+    environment:
+      - KAFKA_BROKER_URL=kafka:9092
+      - INPUT_TOPIC=btg.enriched
+      - GROUP_ID=btg-match-worker-group
+      - PGHOST=postgres
+      - PGPORT=5432
+      - PGDATABASE=postgres
+      - PGUSER=postgres
+      - PGPASSWORD=postgres
+      - LLM_PROVIDER=ollama
+      - LLM_MODEL=qwen2.5:7b-instruct
+      - LLM_TEMPERATURE=0.3
+      - OLLAMA_BASE_URL=https://ollama.pedro-porto.com
+
+    depends_on:
+      - kafka
+      - postgres
+    restart: unless-stopped
+    volumes:
+      - ./app:/app
+
+
+
   postgres:
     image: postgres:16
     container_name: postgres
