@@ -8,6 +8,7 @@ from flask import Flask, request, jsonify
 # permite importar ingest/ e core/ a partir da raiz do projeto
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from ingest import RawPublisher  # requer ingest/__init__.py com: from .main import RawPublisher
+from core.kafka import KafkaJSON
 
 # -------------------------------------------------------------------
 # Config
@@ -21,6 +22,7 @@ TELEGRAM_FILE_API = f"https://api.telegram.org/file/bot{BOT_TOKEN}"
 
 app = Flask(__name__)
 publisher = RawPublisher(auto_connect=True)
+kafka = KafkaJSON(broker=os.getenv("KAFKA_BROKER_URL", "localhost:29092"), group_id="btg-api-group")
 
 # Memória simples
 user_states = {}            # estado por source_id (agora!)
@@ -166,7 +168,7 @@ def processar_escolha_valor(chat_id, source_id, valor_texto):
         user_states.pop(source_id, None)
         return
     
-    publisher.send('btg.verified', {
+    kafka.send('btg.verified', {
         "source_id": source_id,
         "agent_analysis": user_varify_state.get("agent_analysis"),
         "financing_info": {
