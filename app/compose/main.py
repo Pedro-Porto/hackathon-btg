@@ -49,7 +49,13 @@ NO_OFFER_TPL = """Dados do cliente:
 - Valor da parcela: {installment_amount}
 
 Escreva uma mensagem curta avisando que, por enquanto, não há oferta de refinanciamento/portabilidade disponível.
-Mostre-se à disposição para avisar quando surgir oportunidade. Máx. 450 caracteres."""
+Mostre-se à disposição para avisar quando surgir oportunidade. Máx. 450 caracteres.
+
+Exemplo de mensagem caso não haja proposta:
+
+No momento, não encontramos nenhuma proposta disponível que gere redução no valor das suas parcelas. Fique tranquilo, continuaremos monitorando o mercado e avisaremos assim que surgir uma oportunidade interessante para você!
+
+"""
 
 YES_OFFER_TPL = """Dados do cliente:
 - Banco/empresa externa: {company}
@@ -65,7 +71,14 @@ Oferta detectada:
 
 Escreva uma mensagem curta convidando o cliente a avançar com a proposta.
 Mencione com naturalidade a nova taxa e a economia potencial (sem exagero), e ofereça ajuda para simular/contratar.
-Máx. 550 caracteres."""
+Máx. 550 caracteres.
+
+Exemplo de mensagem caso a gente tenha proposta:
+
+Encontramos uma nova taxa de 1,43% ao mês, que reduziria o valor das suas parcelas e resultaria em uma economia total de R$ valor até o final do seu financiamento. Você tem interesse em aproveitar essa proposta?
+
+
+"""
 
 def compose_with_llm(llm: LLMWrapper, payload: Dict[str, Any]) -> str:
     aa = payload.get("agent_analysis", {}) or {}
