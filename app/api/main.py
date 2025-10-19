@@ -196,7 +196,7 @@ def processar_dados():
         if not source_id or not agent_analysis:
             return jsonify({"erro": "source_id e agent_analysis são obrigatórios quando trigger é true"}), 400
 
-    if financiamento is True:
+    if trigger_recommendation is True:
         if not chat_id:
             return jsonify({"erro": "chat_id é obrigatório quando financiamento é true"}), 400
         tg_send_message(chat_id, "Olá! Identificamos uma oportunidade. Esse financiamento seria para automóvel ou imóvel?")
