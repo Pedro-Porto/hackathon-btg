@@ -68,35 +68,24 @@ class DatabaseManager:
 
     def add_bank(self, name: str) -> Optional[int]:
         try:
-            print(f"🔵 Executando INSERT para banco: {name}")
             rowcount = self.db.execute(
                 "INSERT INTO banks (name) VALUES (%s)",
                 (name,)
             )
-            print(f"🔵 INSERT rowcount: {rowcount}")
             
             if rowcount > 0:
-                print(f"🔵 Buscando ID do banco inserido...")
                 result = self.db.fetchone(
                     "SELECT id FROM banks WHERE name = %s ORDER BY id DESC LIMIT 1",
                     (name,)
                 )
-                print(f"🔵 SELECT result: {result}")
                 
                 if result:
                     bank_id = result['id'] if isinstance(result, dict) else result[0]
                     print(f"✅ Novo banco adicionado: {name} (id={bank_id})")
-                    
-                    verify = self.db.fetchone("SELECT id, name FROM banks WHERE id = %s", (bank_id,))
-                    print(f"🔵 Verificando se banco existe: {verify}")
-                    
                     return bank_id
-            print(f"🔴 Falha: rowcount={rowcount}")
             return None
         except Exception as e:
             print(f"❌ Erro ao adicionar banco: {e}")
-            import traceback
-            traceback.print_exc()
             return None
 
     def insert_bank_financing_offer(
@@ -128,12 +117,8 @@ class DatabaseManager:
             self.db.execute(
                 """
                 INSERT INTO bank_financing_offers
-                    (bank_id, user_id, month, year,
-                     asset_value, monthly_interest_rate, total_value_with_interest,
-                     installments_count, type)
-                VALUES (%s, %s, %s, %s,
-                        0, 0, 0,
-                        %s, 'UNKNOWN')
+                    (bank_id, user_id, month, year, installments_count, type)
+                VALUES (%s, %s, %s, %s, %s, 'UNKNOWN')
                 """,
                 (bank_id, user_id, month, year, installments_count)
             )
