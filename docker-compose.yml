@@ -80,16 +80,16 @@ services:
     volumes:
       - ./app:/app
 
-  composer:
+  compose:
     build: .
-    container_name: composer
-    working_dir: /app/composer
+    container_name: compose
+    working_dir: /app/compose
     command: python -u main.py
     environment:
       - KAFKA_BROKER_URL=kafka:9092
       - INPUT_TOPIC=btg.matched
       - OUTPUT_TOPIC=btg.composed
-      - GROUP_ID=btg-composer
+      - GROUP_ID=btg-compose
       - LLM_PROVIDER=ollama
       - LLM_MODEL=qwen2.5:7b-instruct
       - LLM_TEMPERATURE=0.3
@@ -104,7 +104,7 @@ services:
     build: .
     container_name: verify
     working_dir: /app/verify
-    command: python -u worker_manager.py
+    command: python -u main.py
     environment:
       - KAFKA_BROKER_URL=kafka:9092
       - INPUT_TOPIC=btg.interpreted
@@ -127,10 +127,10 @@ services:
     volumes:
       - ./app:/app
 
-  matcher:
+  match:
     build: .
-    container_name: matcher
-    working_dir: /app/matcher
+    container_name: match
+    working_dir: /app/match
     command: python -u main.py
     environment:
       - KAFKA_BROKER_URL=kafka:9092

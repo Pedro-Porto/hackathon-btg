@@ -1,5 +1,3 @@
-import boto3
-from PIL import Image, ImageDraw
 
 def _safe_text(d):
     if not d:
