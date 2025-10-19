@@ -62,6 +62,48 @@ class DatabaseMatcher:
             print(f"❌ Erro ao buscar bancos: {e}")
             return []
 
+    def check_existing_offer(
+        self,
+        bank_id: int,
+        user_id: int,
+        asset_value: float,
+        monthly_interest_rate: float,
+        installments_count: int,
+        offered: bool,
+        offered_interest_rate: Optional[float] = None
+    ) -> bool:
+        try:
+            if not offered:
+                return False
+            
+            if offered_interest_rate is None:
+                return False
+            
+            result = self.db.fetchone(
+                """
+                SELECT id FROM bank_financing_offers
+                WHERE bank_id = %s
+                  AND user_id = %s
+                  AND asset_value = %s
+                  AND monthly_interest_rate = %s
+                  AND installments_count = %s
+                  AND offered = TRUE
+                  AND offered_interest_rate = %s
+                LIMIT 1
+                """,
+                (bank_id, user_id, asset_value, monthly_interest_rate, 
+                 installments_count, offered_interest_rate)
+            )
+            
+            if result:
+                print(f"Oferta já existe com os mesmos dados (não enviando duplicata)")
+                return True
+            return False
+            
+        except Exception as e:
+            print(f"Erro ao verificar oferta existente: {e}")
+            return False
+    
     def update_bank_financing_offer(
         self,
         bank_id: int,
@@ -123,9 +165,9 @@ class DatabaseMatcher:
                 return None
 
         except Exception as e:
-            print(f"❌ Erro ao atualizar oferta: {e}")
+            print(f"Erro ao atualizar oferta: {e}")
             return None
     
     def close(self):
         self.db.close()
-        print("🔒 Conexão com o banco encerrada")
+        print("Conexão com o banco encerrada")
