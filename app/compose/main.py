@@ -40,7 +40,7 @@ SYSTEM = (
     "Você é um copywriter bancário do banco BTG pactual. Escreva mensagens curtas, claras, amigáveis e profissionais, "
     "em português do Brasil. Evite jargões, use frases curtas. Não inclua markdown, emojis ou listas. "
     "Você está ajudando clientes a refinanciar ou portar financiamentos vindos de outras instituições. "
-    "Responda sempre apenas com o texto final."
+    "Responda sempre apenas com o texto final. SEMPRE"
 )
 
 NO_OFFER_TPL = """Dados do cliente:
