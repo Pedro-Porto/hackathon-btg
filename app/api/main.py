@@ -166,7 +166,7 @@ def processar_escolha_valor(chat_id, source_id, valor_texto):
         user_states.pop(source_id, None)
         return
     
-    publisher.publish('btg.verified', {
+    publisher.send('btg.verified', {
         "source_id": source_id,
         "agent_analysis": user_varify_state.get("agent_analysis"),
         "financing_info": {
