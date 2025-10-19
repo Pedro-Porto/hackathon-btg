@@ -18,6 +18,24 @@ services:
     volumes:
       - ./app:/app
 
+  notify:
+    build: .
+    container_name: notify
+    working_dir: /app/notify
+    command: python -u main.py
+    environment:
+      - KAFKA_BROKER_URL=kafka:9092
+      - INPUT_TOPIC=btg.composed
+      - GROUP_ID=btg-notify-worker-group
+      - API_URL=http://api:3000
+    depends_on:
+      - kafka
+      - api
+    restart: unless-stopped
+    volumes:
+      - ./app:/app
+
+
   interpreter:
     build: .
     container_name: interpreter
