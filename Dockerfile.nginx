@@ -8,4 +8,4 @@ RUN npm run build
 # nginx
 FROM nginx:alpine
 COPY ./nginx/ /etc/nginx/conf.d/
-COPY --from=builder /front/dist /usr/share/nginx/html
+COPY --from=builder /app/front/dist /usr/share/nginx/html
