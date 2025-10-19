@@ -24,7 +24,7 @@ class Database:
         maxconn: int = 10,
         use_dict_cursor: bool = True,
     ):
-        self.host = host or os.getenv("PGHOST", "localhost")
+        self.host = host or os.getenv("PGHOST", "postgres")
         self.port = port or int(os.getenv("PGPORT", "5432"))
         self.database = database or os.getenv("PGDATABASE", "postgres")
         self.user = user or os.getenv("PGUSER", "postgres")
