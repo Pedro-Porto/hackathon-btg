@@ -165,7 +165,6 @@ class DatabaseMatcher:
                 WHERE bank_id = %s 
                 AND user_id = %s
                 AND installments_count = %s
-                AND offered = FALSE
                 ORDER BY created_at DESC
                 LIMIT 1
                 """,
