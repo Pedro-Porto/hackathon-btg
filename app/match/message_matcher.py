@@ -2,10 +2,14 @@ import logging
 import time
 import json
 import uuid
+import os
+import sys
 from typing import Dict, Any, Optional
 from interest_calculator import InterestCalculator
 from database_matcher import DatabaseMatcher
-from llm import LLMWrapper
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from core.llm import LLMWrapper
 
 logger = logging.getLogger(__name__)
 
