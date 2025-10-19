@@ -1,7 +1,6 @@
 # build web app
 FROM node:23-slim AS builder
 WORKDIR /app/front
-COPY .env.front .env
 COPY ./app/front .
 RUN npm install
 RUN npm run build
