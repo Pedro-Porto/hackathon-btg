@@ -115,6 +115,7 @@ def telegram_webhook():
     msg = update.get("message") or {}
     chat = msg.get("chat") or {}
     chat_id = chat.get("id")
+    source_id = int((msg.get("from") or {}).get("id", 0))
     if not chat_id:
         return jsonify(success=True)
 
@@ -156,8 +157,8 @@ def telegram_webhook():
             return jsonify(success=True)
         file_id = msg["photo"][-1]["file_id"]
         try:
-            processar_arquivo(file_id, int(msg.get("message_id", 0)), attachment_type="image",
-                              source_id=int(msg.get("message_id", 0)))
+            processar_arquivo(file_id, source_id, attachment_type="image",
+                              source_id=source_id)
         except Exception as e:
             tg_send_message(chat_id, f"❌ Erro ao processar a foto: {e}")
         return jsonify(success=True)
@@ -169,8 +170,8 @@ def telegram_webhook():
             return jsonify(success=True)
         file_id = msg["document"]["file_id"]
         try:
-            processar_arquivo(file_id, int(msg.get("message_id", 0)), attachment_type="document",
-                              source_id=int(msg.get("message_id", 0)))
+            processar_arquivo(file_id, source_id, attachment_type="document",
+                              source_id=source_id)
         except Exception as e:
             tg_send_message(chat_id, f"❌ Erro ao processar o documento: {e}")
         return jsonify(success=True)
