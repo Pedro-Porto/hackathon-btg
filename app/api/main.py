@@ -228,6 +228,7 @@ def processar_dados():
     source_id = data.get("source_id")
     agent_analysis = data.get("agent_analysis")
     trigger_recommendation = data.get("trigger_recommendation")
+    print(data)
     chat_id = source_id
     verify_state[source_id] = {
         "agent_analysis": agent_analysis,
