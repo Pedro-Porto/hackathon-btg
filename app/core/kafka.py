@@ -40,6 +40,7 @@ class KafkaJSON:
         try:
             data = json.loads(msg.value().decode("utf-8"))
         except Exception:
+            print('json decode error')
             data = msg.value().decode("utf-8")
         callback(msg.topic(), data)
         return True
@@ -66,6 +67,5 @@ if __name__ == "__main__":
         print("[MSG]", topic, data)
 
     k = KafkaJSON("localhost:29092", "demo-group")
-    k.subscribe("raw.posts")
-    k.send("raw.posts", {"ola": "mundo"})
+    k.subscribe("btg.raw")
     k.loop(on_msg)

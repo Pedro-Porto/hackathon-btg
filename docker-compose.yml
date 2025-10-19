@@ -1,0 +1,120 @@
+version: "3.9"
+
+services:
+
+  api:
+    build: .
+    container_name: api
+    working_dir: /app/api
+    command: python -u main.py
+    environment:
+      - BOT_TOKEN=${BOT_TOKEN}
+      - KAFKA_BROKER_URL=kafka:9092
+      - TOPIC_OUT_NAME=btg.raw
+    ports:
+      - "3000:3000"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    volumes:
+      - ./:/
+
+  # interpreter:
+  #   build: .
+  #   container_name: interpreter
+  #   working_dir: /app/interpreter
+  #   command: python -u main.py
+  #   environment:
+  #     - KAFKA_BROKER_URL=kafka:29092
+  #   depends_on:
+  #     kafka:
+  #       condition: service_healthy
+  #   volumes:
+  #     - ./:/
+
+  # textract:
+  #   build: .
+  #   container_name: textract
+  #   working_dir: /app/textract
+  #   command: python -u main.py
+  #   environment:
+  #     - AWS_REGION=${AWS_REGION:-us-east-1}
+  #     - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+  #     - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+  #     - KAFKA_BROKER_URL=kafka:29092
+  #   depends_on:
+  #     kafka:
+  #       condition: service_healthy
+  #   volumes:
+  #     - ./:/
+
+  kafka:
+    image: apache/kafka:4.0.1
+    container_name: kafka
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      - KAFKA_NODE_ID=1
+      - KAFKA_PROCESS_ROLES=broker,controller
+      - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_LISTENERS=PLAINTEXT://:9092,EXTERNAL://:29092,CONTROLLER://:9093
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,EXTERNAL://localhost:29092
+      - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
+      - KAFKA_LOG_DIRS=/var/lib/kafka/data
+      - KAFKA_AUTO_CREATE_TOPICS_ENABLE=true
+      - KAFKA_NUM_PARTITIONS=3
+      - CLUSTER_ID=ZtRxtu_KQZKhgqQf3l4GxA
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
+      - KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0
+    healthcheck:
+      test:
+        ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 4s
+      retries: 20
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    restart: unless-stopped
+    ports:
+      - "60120:8080"
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=local
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  kafka-init:
+    image: apache/kafka:4.0.1
+    container_name: kafka-init
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/bin/sh","-lc"]
+    command: >
+      "
+      echo 'aguardando broker...';
+      for i in $(seq 1 30); do
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --list >/dev/null 2>&1 && break;
+        sleep 2;
+      done;
+      echo 'criando tópicos se não existirem...';
+      /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic btg.raw  --partitions 1 --replication-factor 1;
+      /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic btg.parsed  --partitions 1 --replication-factor 1;
+      /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic btg.interpreted  --partitions 1 --replication-factor 1;
+      /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic btg.verified  --partitions 1 --replication-factor 1;
+      /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic btg.enriched  --partitions 1 --replication-factor 1;
+      /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic btg.matched  --partitions 1 --replication-factor 1;
+      /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic btg.composed --partitions 1 --replication-factor 1;
+      echo 'tópicos prontos.';
+      "
+    restart: "no"
+
+volumes:
+  kafka_data:
