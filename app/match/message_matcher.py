@@ -281,15 +281,17 @@ class MessageMatcher:
                 return True
             
             new_rate_percent = best_offer['tax_mes'] * 100
+            monthly_rate_decimal = round(interest_rate / 100, 5)
+            new_rate_decimal = round(new_rate_percent / 100, 5)
             
             is_duplicate = self.database.check_existing_offer(
                 bank_id=bank_id,
                 user_id=user_id,
                 asset_value=total_value,
-                monthly_interest_rate=interest_rate / 100,
+                monthly_interest_rate=monthly_rate_decimal,
                 installments_count=installment_count,
                 offered=True,
-                offered_interest_rate=new_rate_percent / 100
+                offered_interest_rate=new_rate_decimal
             )
             
             return not is_duplicate
@@ -370,21 +372,23 @@ Which bank ID matches this company? Return ONLY JSON format:
                 return
             
             total_with_interest = total_value * (1 + (interest_rate / 100) * installment_count)
+            monthly_rate_decimal = round(interest_rate / 100, 5)
             
             if has_offer and best_offer:
                 new_rate_percent = best_offer['tax_mes'] * 100
+                new_rate_decimal = round(new_rate_percent / 100, 5)
                 financing_type_id = str(best_offer['id'])
                 
                 self.database.update_bank_financing_offer(
                     bank_id=bank_id,
                     user_id=user_id,
                     asset_value=total_value,
-                    monthly_interest_rate=interest_rate / 100,
+                    monthly_interest_rate=monthly_rate_decimal,
                     total_value_with_interest=total_with_interest,
                     installments_count=installment_count,
                     financing_type=financing_type,
                     offered=True,
-                    offered_interest_rate=new_rate_percent / 100,
+                    offered_interest_rate=new_rate_decimal,
                     offer_id=financing_type_id,
                     financed_amount=remaining_amount,
                     savings_amount=potential_savings
@@ -395,7 +399,7 @@ Which bank ID matches this company? Return ONLY JSON format:
                     bank_id=bank_id,
                     user_id=user_id,
                     asset_value=total_value,
-                    monthly_interest_rate=interest_rate / 100,
+                    monthly_interest_rate=monthly_rate_decimal,
                     total_value_with_interest=total_with_interest,
                     installments_count=installment_count,
                     financing_type=financing_type,
