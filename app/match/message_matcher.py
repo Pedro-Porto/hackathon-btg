@@ -1,5 +1,4 @@
 import time
-import jsonschema
 from typing import Dict, Any, Optional
 from interest_calculator import InterestCalculator
 from database_matcher import DatabaseMatcher
