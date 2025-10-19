@@ -14,7 +14,7 @@ from ingest import RawPublisher  # requer ingest/__init__.py com: from .main imp
 # -------------------------------------------------------------------
 # Config
 # -------------------------------------------------------------------
-BOT_TOKEN="7533069936:AAGrIFseMpWotMurF--EdP4Ru8kLJuCig5U"
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 if not BOT_TOKEN:
     raise RuntimeError("Defina BOT_TOKEN no ambiente.")
 
@@ -103,7 +103,7 @@ def processar_arquivo(file_id: str, chat_id: int, attachment_type: str, source_i
         attachment_type=attachment_type,
         attachment_data=b64,
     )
-    tg_send_message(chat_id, "Arquivo recebido e enviado para processamento.")
+    tg_send_message(chat_id, "✅ Arquivo recebido e enviado para processamento.")
 
 
 # -------------------------------------------------------------------
@@ -144,7 +144,7 @@ def telegram_webhook():
     if "text" in msg:
         text = (msg["text"] or "").strip()
         if text == "/financiamento":
-            tg_send_message(chat_id, "Este boleto pertece a um financiamento?")
+            tg_send_message(chat_id, "Gostaria de fazer um financiamento? (Responda 'sim' ou 'não')")
             user_states[chat_id] = "awaiting_finance_reply"
         else:
             tg_send_message(chat_id, "Recebi o texto. Envie uma foto ou um PDF, ou digite /financiamento.")
@@ -195,10 +195,12 @@ def processar_dados():
     if trigger_recommendation is True:
         if not source_id or not agent_analysis:
             return jsonify({"erro": "source_id e agent_analysis são obrigatórios quando trigger é true"}), 400
+
+    if trigger_recommendation is True:
         if not chat_id:
             return jsonify({"erro": "chat_id é obrigatório quando financiamento é true"}), 400
-        tg_send_message(chat_id, "Olá! Identificamos uma oportunidade. Este boleto pertence a um financiamento?")
-        user_states[chat_id] = "awaiting_finance_reply"
+        tg_send_message(chat_id, "Olá! Identificamos uma oportunidade. Esse financiamento seria para automóvel ou imóvel?")
+        user_states[chat_id] = "awaiting_property_type"
         return jsonify({"status": "sucesso",
                         "mensagem": f"Fluxo de financiamento iniciado no chat {chat_id}."}), 200
 
@@ -241,4 +243,4 @@ def health():
 # -------------------------------------------------------------------
 if __name__ == "__main__":
     # Ex.: BOT_TOKEN=xxx KAFKA_BROKER_URL=kafka:29092 TOPIC_OUT_NAME=btg.raw python api/main.py
-    app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=True)
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", "3000")), debug=True)
