@@ -169,6 +169,19 @@ class MessageMatcher:
                 remaining_amount=remaining_amount
             )
             
+            should_send = self.should_send_offer(
+                message_value=message_value,
+                total_value=total_value,
+                interest_rate=interest_rate,
+                installment_count=installment_count,
+                has_offer=best_offer is not None,
+                best_offer=best_offer
+            )
+            
+            if not should_send:
+                print(f"Duplicate offer detected for source_id={source_id}, treating as no offer available")
+                best_offer = None
+            
             if best_offer:
                 new_rate_percent = best_offer['tax_mes'] * 100
                 
@@ -234,6 +247,57 @@ class MessageMatcher:
                 
         except Exception as e:
             print(f"Error processing message: {e}")
+    
+    def should_send_offer(
+        self,
+        message_value: Dict[str, Any],
+        total_value: float,
+        interest_rate: float,
+        installment_count: int,
+        has_offer: bool,
+        best_offer: Optional[Dict]
+    ) -> bool:
+        try:
+            if not has_offer:
+                return True
+            
+            agent_analysis = message_value.get('agent_analysis', {})
+            user_data = message_value.get('user_data', {})
+            
+            company_name = agent_analysis.get('company', '')
+            if not company_name:
+                return True
+            
+            user_metadata = user_data.get('user_metadata', {})
+            user_id = user_metadata.get('id')
+            if not user_id:
+                return True
+            
+            banks = self.database.get_all_banks()
+            if not banks:
+                return True
+            
+            bank_id = self.check_bank_with_llm(company_name, banks)
+            if not bank_id:
+                return True
+            
+            new_rate_percent = best_offer['tax_mes'] * 100
+            
+            is_duplicate = self.database.check_existing_offer(
+                bank_id=bank_id,
+                user_id=user_id,
+                asset_value=total_value,
+                monthly_interest_rate=interest_rate / 100,
+                installments_count=installment_count,
+                offered=True,
+                offered_interest_rate=new_rate_percent / 100
+            )
+            
+            return not is_duplicate
+            
+        except Exception as e:
+            print(f"Error checking if should send offer: {e}")
+            return True
     
     def check_bank_with_llm(self, company_name: str, banks: list) -> Optional[int]:
         try:
