@@ -9,11 +9,9 @@ from core.database import Database
 class DatabaseEnricher:
     def __init__(self, db: Database):
         self.db = db
-        print("✅ DatabaseEnricher inicializado com pool ativo.")
+        print("DatabaseEnricher inicializado com pool ativo.")
 
-    # --------------------------
-    # Métodos de consulta
-    # --------------------------
+
     def get_user_id_from_source(self, source_id: int) -> Optional[int]:
         try:
             sql = "SELECT user_id FROM user_source WHERE source_id = %s"
