@@ -11,10 +11,10 @@ services:
     volumes:
       - ./nginx/:/etc/nginx/conf.d/
 
-  back:
+  provide:
     build: .
-    container_name: back
-    working_dir: /app/back
+    container_name: provide
+    working_dir: /app/provide
     command: python -u main.py
     ports:
       - "3002:3002"
