@@ -125,8 +125,13 @@ def processar_tipo_financiamento(chat_id, source_id, tipo_escolhido):
             tipo_normalizado = "Automóvel"
         elif t in ("imovel", "imóvel", "casa", "apto", "apartamento"):
             tipo_normalizado = "Imóvel"
+
+    to_eng = {
+        "Automóvel": "automobile",
+        "Imóvel": "property"
+    }
     
-    verify_state[source_id]['financing_type'] = tipo_normalizado
+    verify_state[source_id]['financing_type'] = to_eng[tipo_normalizado]
 
     if not tipo_normalizado:
         tg_send_message(chat_id, f"Não entendi a opção '{tipo_escolhido}'. Use os botões.")
