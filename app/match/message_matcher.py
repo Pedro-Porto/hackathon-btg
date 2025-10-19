@@ -1,14 +1,13 @@
+import logging
 import time
 import json
+import uuid
 from typing import Dict, Any, Optional
 from interest_calculator import InterestCalculator
 from database_matcher import DatabaseMatcher
-import sys
-import os
+from llm import LLMWrapper
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from core.llm import LLMWrapper
-
+logger = logging.getLogger(__name__)
 
 
 class MessageMatcher:
@@ -21,41 +20,41 @@ class MessageMatcher:
     
     def validate_schema(self, message_value: Dict[str, Any]) -> bool:
         if not isinstance(message_value, dict):
-            print(f"Message discarded: expected dict but got {type(message_value).__name__}")
+            logger.warning(f"Message discarded: expected dict but got {type(message_value).__name__}")
             return False
         
         if not isinstance(message_value.get('source_id'), int):
-            print(f"Message discarded: missing or invalid 'source_id'")
+            logger.warning(f"Message discarded: missing or invalid 'source_id'")
             return False
         
         agent_analysis = message_value.get('agent_analysis')
         if not isinstance(agent_analysis, dict):
-            print(f"Message discarded: missing or invalid 'agent_analysis'")
+            logger.warning(f"Message discarded: missing or invalid 'agent_analysis'")
             return False
         
         if not isinstance(agent_analysis.get('installment_count'), int):
-            print(f"Message discarded: missing or invalid 'installment_count'")
+            logger.warning(f"Message discarded: missing or invalid 'installment_count'")
             return False
         
         if not isinstance(agent_analysis.get('current_installment_number'), int):
-            print(f"Message discarded: missing or invalid 'current_installment_number'")
+            logger.warning(f"Message discarded: missing or invalid 'current_installment_number'")
             return False
         
         if not isinstance(agent_analysis.get('installment_amount'), (int, float)):
-            print(f"Message discarded: missing or invalid 'installment_amount'")
+            logger.warning(f"Message discarded: missing or invalid 'installment_amount'")
             return False
         
         financing_info = message_value.get('financing_info')
         if not isinstance(financing_info, dict):
-            print(f"Message discarded: missing or invalid 'financing_info'")
+            logger.warning(f"Message discarded: missing or invalid 'financing_info'")
             return False
         
         if not isinstance(financing_info.get('type'), str):
-            print(f"Message discarded: missing or invalid 'financing_info.type'")
+            logger.warning(f"Message discarded: missing or invalid 'financing_info.type'")
             return False
         
         if not isinstance(financing_info.get('value'), (int, float)):
-            print(f"Message discarded: missing or invalid 'financing_info.value'")
+            logger.warning(f"Message discarded: missing or invalid 'financing_info.value'")
             return False
         
         return True
@@ -65,15 +64,23 @@ class MessageMatcher:
         total_value: float,
         installment_count: int,
         current_installment_number: int,
-        system_type: str
+        system_type: str,
+        monthly_rate: float,
+        installment_amount: float
     ) -> float:
         remaining_installments = installment_count - current_installment_number + 1
         
         if system_type == 'SAC':
+            # SAC: amortização constante
             amortization = total_value / installment_count
             remaining_amount = amortization * remaining_installments
-        else:
-            remaining_amount = total_value * (remaining_installments / installment_count)
+        else:  # PRICE system
+            # Saldo = PMT × [1 - (1+i)^(-n)] / i
+            r = monthly_rate / 100  # Convert percentage to decimal
+            if r == 0:  # Avoid division by zero
+                remaining_amount = installment_amount * remaining_installments
+            else:
+                remaining_amount = installment_amount * (1 - (1 + r)**(-remaining_installments)) / r
         
         return remaining_amount
     
@@ -126,11 +133,11 @@ class MessageMatcher:
                     installment_amount=installment_amount
                 )
             else:
-                print(f"Unknown financing type: {financing_type}")
+                logger.warning(f"Unknown financing type: {financing_type}")
                 return
             
             if interest_rate is None:
-                print(f"Could not calculate interest rate for source_id={source_id}")
+                logger.warning(f"Could not calculate interest rate for source_id={source_id}")
                 return
             
             print("\n" + "="*80)
@@ -146,13 +153,15 @@ class MessageMatcher:
             print(f"\n>>> MONTHLY INTEREST RATE: {interest_rate:.4f}% <<<")
             print(f">>> ANNUAL INTEREST RATE: {interest_rate * 12:.4f}% <<<")
             
-            print(f"Interest rate calculated: {interest_rate:.4f}% per month for source_id={source_id}")
+            logger.info(f"Interest rate calculated: {interest_rate:.4f}% per month for source_id={source_id}")
             
             remaining_amount = self.calculate_remaining_amount(
                 total_value=total_value,
                 installment_count=installment_count,
                 current_installment_number=current_installment_number,
-                system_type=system_type
+                system_type=system_type,
+                monthly_rate=interest_rate,
+                installment_amount=installment_amount
             )
             
             remaining_installments = installment_count - current_installment_number + 1
@@ -167,19 +176,6 @@ class MessageMatcher:
                 current_rate=interest_rate,
                 remaining_amount=remaining_amount
             )
-            
-            should_send = self.should_send_offer(
-                message_value=message_value,
-                total_value=total_value,
-                interest_rate=interest_rate,
-                installment_count=installment_count,
-                has_offer=best_offer is not None,
-                best_offer=best_offer
-            )
-            
-            if not should_send:
-                print(f"Duplicate offer detected for source_id={source_id}, treating as no offer available")
-                best_offer = None
             
             if best_offer:
                 new_rate_percent = best_offer['tax_mes'] * 100
@@ -214,7 +210,7 @@ class MessageMatcher:
                 print(f"Potential Savings: R$ {potential_savings:,.2f}")
                 print("="*80 + "\n")
                 
-                print(f"Better offer found for source_id={source_id}, publishing to btg.matched")
+                logger.info(f"Better offer found for source_id={source_id}, publishing to btg.matched")
             else:
                 matched_message = {
                     "source_id": source_id,
@@ -227,10 +223,10 @@ class MessageMatcher:
                 print("NO BETTER OFFER AVAILABLE")
                 print("="*80 + "\n")
                 
-                print(f"No better offer found for source_id={source_id}")
+                logger.info(f"No better offer found for source_id={source_id}")
             
             self.kafka_publisher.send('btg.matched', matched_message)
-            print(f"Message published to btg.matched for source_id={source_id}")
+            logger.info(f"Message published to btg.matched for source_id={source_id}")
             
             self.update_financing_offer(
                 message_value=message_value,
@@ -245,60 +241,7 @@ class MessageMatcher:
             )
                 
         except Exception as e:
-            print(f"Error processing message: {e}")
-    
-    def should_send_offer(
-        self,
-        message_value: Dict[str, Any],
-        total_value: float,
-        interest_rate: float,
-        installment_count: int,
-        has_offer: bool,
-        best_offer: Optional[Dict]
-    ) -> bool:
-        try:
-            if not has_offer:
-                return True
-            
-            agent_analysis = message_value.get('agent_analysis', {})
-            user_data = message_value.get('user_data', {})
-            
-            company_name = agent_analysis.get('company', '')
-            if not company_name:
-                return True
-            
-            user_metadata = user_data.get('user_metadata', {})
-            user_id = user_metadata.get('id')
-            if not user_id:
-                return True
-            
-            banks = self.database.get_all_banks()
-            if not banks:
-                return True
-            
-            bank_id = self.check_bank_with_llm(company_name, banks)
-            if not bank_id:
-                return True
-            
-            new_rate_percent = best_offer['tax_mes'] * 100
-            monthly_rate_decimal = round(interest_rate / 100, 5)
-            new_rate_decimal = round(new_rate_percent / 100, 5)
-            
-            is_duplicate = self.database.check_existing_offer(
-                bank_id=bank_id,
-                user_id=user_id,
-                asset_value=total_value,
-                monthly_interest_rate=monthly_rate_decimal,
-                installments_count=installment_count,
-                offered=True,
-                offered_interest_rate=new_rate_decimal
-            )
-            
-            return not is_duplicate
-            
-        except Exception as e:
-            print(f"Error checking if should send offer: {e}")
-            return True
+            logger.error(f"Error processing message: {e}", exc_info=True)
     
     def check_bank_with_llm(self, company_name: str, banks: list) -> Optional[int]:
         try:
@@ -319,7 +262,7 @@ Which bank ID matches this company? Return ONLY JSON format:
             
             response = self.llm.generate(prompt=prompt, system_prompt=system_prompt)
             
-            print(f"LLM response for bank matching: {response}")
+            logger.info(f"LLM response for bank matching: {response}")
             
             response_clean = response.strip()
             if response_clean.startswith("```"):
@@ -330,7 +273,7 @@ Which bank ID matches this company? Return ONLY JSON format:
             return result.get('id')
             
         except Exception as e:
-            print(f"Error checking bank with LLM: {e}")
+            logger.error(f"Error checking bank with LLM: {e}", exc_info=True)
             return None
     
     def update_financing_offer(
@@ -352,60 +295,58 @@ Which bank ID matches this company? Return ONLY JSON format:
             
             company_name = agent_analysis.get('company', '')
             if not company_name:
-                print("No company name found in agent_analysis")
+                logger.warning("No company name found in agent_analysis")
                 return
             
             user_metadata = user_data.get('user_metadata', {})
             user_id = user_metadata.get('id')
             if not user_id:
-                print("No user_id found in user_data")
+                logger.warning("No user_id found in user_data")
                 return
             
             banks = self.database.get_all_banks()
             if not banks:
-                print("No banks in database")
+                logger.warning("No banks in database")
                 return
             
             bank_id = self.check_bank_with_llm(company_name, banks)
             if not bank_id:
-                print(f"Could not match company '{company_name}' to any bank")
+                logger.warning(f"Could not match company '{company_name}' to any bank")
                 return
             
             total_with_interest = total_value * (1 + (interest_rate / 100) * installment_count)
-            monthly_rate_decimal = round(interest_rate / 100, 5)
             
             if has_offer and best_offer:
                 new_rate_percent = best_offer['tax_mes'] * 100
-                new_rate_decimal = round(new_rate_percent / 100, 5)
                 financing_type_id = str(best_offer['id'])
                 
                 self.database.update_bank_financing_offer(
                     bank_id=bank_id,
                     user_id=user_id,
                     asset_value=total_value,
-                    monthly_interest_rate=monthly_rate_decimal,
+                    monthly_interest_rate=interest_rate / 100,
                     total_value_with_interest=total_with_interest,
                     installments_count=installment_count,
                     financing_type=financing_type,
                     offered=True,
-                    offered_interest_rate=new_rate_decimal,
+                    offered_interest_rate=new_rate_percent / 100,
                     offer_id=financing_type_id,
                     financed_amount=remaining_amount,
                     savings_amount=potential_savings
                 )
-                print(f"Financing offer updated with offer for bank_id={bank_id}, user_id={user_id}")
+                logger.info(f"Financing offer updated with offer for bank_id={bank_id}, user_id={user_id}")
             else:
                 self.database.update_bank_financing_offer(
                     bank_id=bank_id,
                     user_id=user_id,
                     asset_value=total_value,
-                    monthly_interest_rate=monthly_rate_decimal,
+                    monthly_interest_rate=interest_rate / 100,
                     total_value_with_interest=total_with_interest,
                     installments_count=installment_count,
                     financing_type=financing_type,
                     offered=False
                 )
-                print(f"Financing offer updated without offer for bank_id={bank_id}, user_id={user_id}")
+                logger.info(f"Financing offer updated without offer for bank_id={bank_id}, user_id={user_id}")
                 
         except Exception as e:
-            print(f"Error updating financing offer: {e}")
+            logger.error(f"Error updating financing offer: {e}", exc_info=True)
