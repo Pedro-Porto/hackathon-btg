@@ -15,6 +15,7 @@ RUN pip install -U pip && pip install \
     flask \
     requests \
     kafka-python \
-    boto3
+    boto3 \
+    confluent-kafka
 
 EXPOSE 3000
