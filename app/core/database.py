@@ -135,7 +135,7 @@ class Database:
         try:
             return self.fetchval("SELECT 1") == 1
         except Exception as e:
-            print("Healthcheck falhou: %s", e, exc_info=True)
+            print(f"Healthcheck falhou: {e}")
             return False
 
     def close(self):
