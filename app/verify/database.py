@@ -88,6 +88,23 @@ class DatabaseManager:
         installments_count: int,
     ) -> Optional[int]:
         try:
+            existing_id = self.db.fetchval(
+                """
+                SELECT id FROM bank_financing_offers
+                WHERE bank_id = %s
+                  AND user_id = %s
+                  AND month = %s
+                  AND year = %s
+                  AND installments_count = %s
+                LIMIT 1
+                """,
+                (bank_id, user_id, month, year, installments_count),
+            )
+            
+            if existing_id is not None:
+                print(f"Oferta de financiamento já existe: id={existing_id} (não duplicando)")
+                return existing_id
+
             offer_id = self.db.fetchval(
                 """
                 INSERT INTO bank_financing_offers
@@ -102,15 +119,15 @@ class DatabaseManager:
                 (bank_id, user_id, month, year, installments_count),
             )
             if offer_id is not None:
-                print(f"✅ Oferta de financiamento inserida: id={offer_id}")
+                print(f"Oferta de financiamento inserida: id={offer_id}")
             return offer_id
         except Exception as e:
-            print(f"❌ Erro ao inserir oferta de financiamento: {e}")
+            print(f"Erro ao inserir oferta de financiamento: {e}")
             return None
 
     def close(self):
         try:
             self.db.close()
-            print("🔒 Conexão com o banco encerrada")
+            print("Conexão com o banco encerrada")
         except Exception as e:
-            print(f"⚠️ Falha ao fechar pool: {e}")
+            print(f"Falha ao fechar pool: {e}")
