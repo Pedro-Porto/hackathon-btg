@@ -219,7 +219,7 @@ def processar_dados():
 @app.route("/api/send_message", methods=["POST"])
 def api_send_message():
     data = request.json or {}
-    chat_id = data.get("chat_id")  # (corrigido: antes pegava source_id por engano)
+    chat_id = data.get("source_id")  # (corrigido: antes pegava source_id por engano)
     text = data.get("text")
     if not chat_id or not text:
         return jsonify({"erro": "chat_id e text são obrigatórios"}), 400

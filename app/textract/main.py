@@ -5,50 +5,51 @@ import sys
 import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
 from core.kafka import KafkaJSON
+
+
+KAFKA_BROKER = os.getenv("KAFKA_BROKER", "localhost:29092")
+KAFKA_GROUP_ID = os.getenv("KAFKA_GROUP_ID", "textract-group-1")
+INPUT_TOPIC = os.getenv("INPUT_TOPIC", "btg.raw")
+OUTPUT_TOPIC = os.getenv("OUTPUT_TOPIC", "btg.parsed")
+
+AWS_PROFILE = os.getenv("AWS_PROFILE", "default")
+AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
 
 
 client = None
 kafka = None
 
-'''
-{
-	source_id: int,
-	attachment_type: string,
-	attachment_data: string,
-	timestamp: int
-}
-
-'''
 
 def on_msg(topic, data):
-    print("Recebido do tópico:", topic, "=>")
+    print("📩 Recebido do tópico:", topic, "=>")
     image64 = data.get("attachment_data")
     image_bytes = base64.b64decode(image64)
+
     results = process_image(client, image_bytes)
-    kafka.send('btg.parsed', 
-                {
-                    "source_id": data.get("source_id"),
-                    "attachment_parsed": results,
-                    "timestamp": data.get("timestamp")
-                })
-    print('enviado')
 
-
+    kafka.send(
+        OUTPUT_TOPIC,
+        {
+            "source_id": data.get("source_id"),
+            "attachment_parsed": results,
+            "timestamp": data.get("timestamp"),
+        },
+    )
+    print("✅ Resultado enviado para", OUTPUT_TOPIC)
 
 
 def main():
-    global client 
-    global kafka
-    kafka = KafkaJSON(broker="localhost:29092", group_id="textract-group-1")
+    global client, kafka
 
-    session = boto3.Session(profile_name='default')
-    client = session.client('textract', region_name='us-east-1')
+    kafka = KafkaJSON(broker=KAFKA_BROKER, group_id=KAFKA_GROUP_ID)
 
-    kafka.subscribe('btg.raw')
+    session = boto3.Session(profile_name=AWS_PROFILE)
+    client = session.client("textract", region_name=AWS_REGION)
+
+    kafka.subscribe(INPUT_TOPIC)
     kafka.loop(on_msg)
-    
+
 
 if __name__ == "__main__":
     main()
