@@ -285,8 +285,8 @@ def processar_dados():
     trigger_recommendation = data.get("trigger_recommendation")
     chat_id = source_id
     verify_state[source_id] = {
-        agent_analysis: agent_analysis,
-        trigger_recommendation: trigger_recommendation
+        "agent_analysis": agent_analysis,
+        "trigger_recommendation": trigger_recommendation
     }
 
     if trigger_recommendation:
