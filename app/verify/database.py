@@ -68,13 +68,17 @@ class DatabaseManager:
 
     def add_bank(self, name: str) -> Optional[int]:
         try:
-            bank_id = self.db.fetchval(
-                "INSERT INTO banks (name) VALUES (%s) RETURNING id",
-                (name,),
-            )
-            if bank_id is not None:
-                print(f"✅ Novo banco adicionado: {name} (id={bank_id})")
-            return bank_id
+            with self.db.transaction() as cur:
+                cur.execute(
+                    "INSERT INTO banks (name) VALUES (%s) RETURNING id",
+                    (name,)
+                )
+                result = cur.fetchone()
+                if result:
+                    bank_id = result['id'] if isinstance(result, dict) else result[0]
+                    print(f"✅ Novo banco adicionado: {name} (id={bank_id})")
+                    return bank_id
+                return None
         except Exception as e:
             print(f"❌ Erro ao adicionar banco: {e}")
             return None
@@ -104,30 +108,34 @@ class DatabaseManager:
             if existing_id is not None:
                 print(f"Oferta de financiamento já existe: id={existing_id} (não duplicando)")
                 return existing_id
-
-            offer_id = self.db.fetchval(
-                """
-                INSERT INTO bank_financing_offers
-                    (bank_id, user_id, month, year,
-                     asset_value, monthly_interest_rate, total_value_with_interest,
-                     installments_count, type)
-                VALUES (%s, %s, %s, %s,
-                        0, 0, 0,
-                        %s, 'UNKNOWN')
-                RETURNING id
-                """,
-                (bank_id, user_id, month, year, installments_count),
-            )
-            if offer_id is not None:
-                print(f"Oferta de financiamento inserida: id={offer_id}")
-            return offer_id
+            
+            with self.db.transaction() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO bank_financing_offers
+                        (bank_id, user_id, month, year,
+                         asset_value, monthly_interest_rate, total_value_with_interest,
+                         installments_count, type)
+                    VALUES (%s, %s, %s, %s,
+                            0, 0, 0,
+                            %s, 'UNKNOWN')
+                    RETURNING id
+                    """,
+                    (bank_id, user_id, month, year, installments_count)
+                )
+                result = cur.fetchone()
+                if result:
+                    offer_id = result['id'] if isinstance(result, dict) else result[0]
+                    print(f"✅ Oferta de financiamento inserida: id={offer_id}")
+                    return offer_id
+                return None
         except Exception as e:
-            print(f"Erro ao inserir oferta de financiamento: {e}")
+            print(f"❌ Erro ao inserir oferta de financiamento: {e}")
             return None
 
     def close(self):
         try:
             self.db.close()
-            print("Conexão com o banco encerrada")
+            print("🔒 Conexão com o banco encerrada")
         except Exception as e:
-            print(f"Falha ao fechar pool: {e}")
+            print(f"⚠️ Falha ao fechar pool: {e}")
