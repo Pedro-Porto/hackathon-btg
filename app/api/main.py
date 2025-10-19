@@ -26,6 +26,7 @@ publisher = RawPublisher(auto_connect=True)
 user_states = {}            # estado por source_id (agora!)
 processed_callbacks = set()
 processing_chats = set()
+verify_state = {}
 
 # -------------------------------------------------------------------
 # Utilitários
@@ -122,6 +123,8 @@ def processar_tipo_financiamento(chat_id, source_id, tipo_escolhido):
             tipo_normalizado = "Automóvel"
         elif t in ("imovel", "imóvel", "casa", "apto", "apartamento"):
             tipo_normalizado = "Imóvel"
+    
+    verify_state[source_id]['financing_type'] = tipo_normalizado
 
     if not tipo_normalizado:
         tg_send_message(chat_id, f"Não entendi a opção '{tipo_escolhido}'. Use os botões.")
@@ -157,7 +160,22 @@ def processar_escolha_valor(chat_id, source_id, valor_texto):
     mensagem_final = (f"Perfeito! Registramos seu interesse em financiamento para {tipo_escolhido} "
                       f"no valor de {valor_formatado}. "
                       "Um de nossos especialistas entrará em contato para falar sobre as opções de crédito.")
-    tg_send_message(chat_id, mensagem_final)
+    user_varify_state = verify_state.get(source_id, {})
+    if not user_varify_state:
+        tg_send_message(chat_id, "❌ Ocorreu um erro interno. Por favor, inicie o processo novamente.")
+        user_states.pop(source_id, None)
+        return
+    
+    publisher.publish('btg.verified', {
+        "source_id": source_id,
+        "agent_analysis": user_varify_state.get("agent_analysis"),
+        "financing_info": {
+            "type": user_varify_state.get("financing_type"),
+            "value": valor_numerico
+        },
+        "timestamp": 0
+    })
+    # tg_send_message(chat_id, mensagem_final)
     user_states.pop(source_id, None)
 
 # -------------------------------------------------------------------
@@ -266,6 +284,10 @@ def processar_dados():
     agent_analysis = data.get("agent_analysis")
     trigger_recommendation = data.get("trigger_recommendation")
     chat_id = source_id
+    verify_state[source_id] = {
+        agent_analysis: agent_analysis,
+        trigger_recommendation: trigger_recommendation
+    }
 
     if trigger_recommendation:
         if not source_id or not agent_analysis:
