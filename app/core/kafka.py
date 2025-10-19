@@ -17,13 +17,11 @@ class KafkaJSON:
             "auto.offset.reset": "earliest"
         })
 
-    # --- PRODUCER ---
     def send(self, topic: str, data: dict, key: str | None = None) -> None:
         payload = json.dumps(data, ensure_ascii=False).encode("utf-8")
         self._producer.produce(topic, value=payload, key=key)
         self._producer.flush()
 
-    # --- CONSUMER ---
     def subscribe(self, topics: str | list[str]) -> None:
         if isinstance(topics, str):
             topics = [topics]
@@ -54,7 +52,6 @@ class KafkaJSON:
         finally:
             self.close()
 
-    # --- FECHAMENTO ---
     def close(self) -> None:
         try:
             self._consumer.close()
