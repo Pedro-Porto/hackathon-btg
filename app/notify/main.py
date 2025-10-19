@@ -16,27 +16,27 @@ def on_msg(topic: str, data: dict):
     text = data.get("offer_message")
 
     if not source_id or not text:
-        print("⚠️  mensagem inválida, faltando source_id ou offer_message:", data)
+        print("mensagem inválida, faltando source_id ou offer_message:", data)
         return
 
     payload = {"source_id": source_id, "text": text}
     try:
         r = requests.post(f"{API_URL}/api/send_message", json=payload, timeout=10)
         if r.status_code == 200:
-            print(f"✅ enviada para chat_id={source_id}")
+            print(f"enviada para chat_id={source_id}")
         else:
-            print(f"❌ erro HTTP {r.status_code}: {r.text}")
+            print(f"erro HTTP {r.status_code}: {r.text}")
     except Exception as e:
-        print(f"❌ falha ao enviar requisição: {e}")
+        print(f"falha ao enviar requisição: {e}")
 
 def main():
-    print(f"▶️  consumindo de {INPUT_TOPIC} @ {KAFKA_BROKER} → POST {API_URL}/api/send_message")
+    print(f"consumindo de {INPUT_TOPIC} @ {KAFKA_BROKER} → POST {API_URL}/api/send_message")
     k = KafkaJSON(broker=KAFKA_BROKER, group_id=GROUP_ID)
     k.subscribe(INPUT_TOPIC)
     try:
         k.loop(on_msg)
     except KeyboardInterrupt:
-        print("\n⛔ encerrado")
+        print("\nencerrado")
     finally:
         if hasattr(k, "close"):
             k.close()
