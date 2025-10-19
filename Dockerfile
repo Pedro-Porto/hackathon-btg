@@ -16,6 +16,7 @@ RUN pip install -U pip && pip install \
     requests \
     kafka-python \
     boto3 \
-    confluent-kafka
+    confluent-kafka \
+    psycopg2-binary
 
 EXPOSE 3000
