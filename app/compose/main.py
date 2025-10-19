@@ -14,35 +14,28 @@ INPUT_TOPIC = os.getenv("INPUT_TOPIC", "btg.matched")
 OUTPUT_TOPIC = os.getenv("OUTPUT_TOPIC", "btg.composed")
 
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "ollama")
-LLM_MODEL = os.getenv("LLM_MODEL", "qwen2.5:7b-instruct")  # troque para qwen2.5:7b-instruct se preferir
+LLM_MODEL = os.getenv("LLM_MODEL", "qwen2.5:7b-instruct")
 LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.3"))
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "https://ollama.pedro-porto.com")
 
 
-# -------------------------
-# Helpers
-# -------------------------
+
 def ts_ms() -> int:
     return int(time.time() * 1000)
 
 def fmt_brl(v: Optional[float]) -> str:
     if v is None:
         return "-"
-    # formato brasileiro simples: R$ 12.345,67
     s = f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     return f"R$ {s}"
 
 def fmt_pct(v: Optional[float]) -> str:
     if v is None:
         return "-"
-    # exibe com duas casas e vírgula: 1,29% a.m.
     s = f"{v:.2f}".replace(".", ",")
     return f"{s}% a.m."
 
 
-# -------------------------
-# LLM: prompts
-# -------------------------
 SYSTEM = (
     "Você é um copywriter bancário do banco BTG pactual. Escreva mensagens curtas, claras, amigáveis e profissionais, "
     "em português do Brasil. Evite jargões, use frases curtas. Não inclua markdown, emojis ou listas. "
@@ -135,9 +128,6 @@ def fallback_message(payload: Dict[str, Any]) -> str:
                 "Se quiser, posso revisar seus dados ou refazer a simulação.")
 
 
-# -------------------------
-# Kafka pipeline
-# -------------------------
 def build_output(source_id: int, offer_message: str) -> Dict[str, Any]:
     return {
         "source_id": int(source_id),
@@ -159,7 +149,7 @@ def on_msg(topic: str, msg: Dict[str, Any], *, k: KafkaJSON, llm: LLMWrapper):
         text = fallback_message(msg)
 
     out = build_output(source_id, text)
-    # publica
+
     if hasattr(k, "send"):
         k.send(OUTPUT_TOPIC, out)
     elif hasattr(k, "publish"):
