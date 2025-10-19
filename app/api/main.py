@@ -248,7 +248,7 @@ def processar_dados():
         return jsonify({"status": "sucesso",
                         "mensagem": f"Fluxo iniciado para source_id {source_id}"}), 200
 
-    return jsonify({"status": "sucesso", "mensagem": "Pagamento confirmado! Que bom ver tudo certo por aqui!", "dados_processados": data}), 200
+    return jsonify({"status": "sucesso", "mensagem": "Pagamento confirmado! Que bom ver tudo certo por aqui!"}), 200
 
 
 @app.route("/api/send_message", methods=["POST"])
