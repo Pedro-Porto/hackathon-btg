@@ -28,7 +28,7 @@ class DatabaseManager:
             maxconn=maxconn,
             use_dict_cursor=use_dict_cursor,
         )
-        print(f"✅ DatabaseManager conectado em {host}:{port}/{database}")
+        print(f"DatabaseManager conectado em {host}:{port}/{database}")
 
     def get_user_id_from_source(self, source_id: int) -> Optional[int]:
         try:
@@ -37,7 +37,7 @@ class DatabaseManager:
                 (source_id,),
             )
         except Exception as e:
-            print(f"❌ Erro ao buscar user_id: {e}")
+            print(f"Erro ao buscar user_id: {e}")
             return None
 
     def check_matching_transaction(self, user_id: int, installment_amount: float) -> bool:
@@ -54,16 +54,16 @@ class DatabaseManager:
             )
             return bool(cnt and cnt > 0)
         except Exception as e:
-            print(f"❌ Erro ao verificar transações: {e}")
+            print(f"Erro ao verificar transações: {e}")
             return False
 
     def get_all_banks(self) -> List[Dict[str, Any]]:
         try:
             rows = self.db.fetchall("SELECT id, name FROM banks ORDER BY name")
-            print(f"🏦 {len(rows)} bancos encontrados")
+            print(f"{len(rows)} bancos encontrados")
             return rows or []
         except Exception as e:
-            print(f"❌ Erro ao buscar bancos: {e}")
+            print(f"Erro ao buscar bancos: {e}")
             return []
 
     def add_bank(self, name: str) -> Optional[int]:
@@ -81,11 +81,11 @@ class DatabaseManager:
                 
                 if result:
                     bank_id = result['id'] if isinstance(result, dict) else result[0]
-                    print(f"✅ Novo banco adicionado: {name} (id={bank_id})")
+                    print(f"Novo banco adicionado: {name} (id={bank_id})")
                     return bank_id
             return None
         except Exception as e:
-            print(f"❌ Erro ao adicionar banco: {e}")
+            print(f"Erro ao adicionar banco: {e}")
             return None
 
     def insert_bank_financing_offer(
@@ -134,16 +134,16 @@ class DatabaseManager:
             
             if result:
                 offer_id = result['id'] if isinstance(result, dict) else result[0]
-                print(f"✅ Oferta de financiamento inserida: id={offer_id}")
+                print(f"Oferta de financiamento inserida: id={offer_id}")
                 return offer_id
             return None
         except Exception as e:
-            print(f"❌ Erro ao inserir oferta de financiamento: {e}")
+            print(f"Erro ao inserir oferta de financiamento: {e}")
             return None
 
     def close(self):
         try:
             self.db.close()
-            print("🔒 Conexão com o banco encerrada")
+            print("Conexão com o banco encerrada")
         except Exception as e:
-            print(f"⚠️ Falha ao fechar pool: {e}")
+            print(f"Falha ao fechar pool: {e}")

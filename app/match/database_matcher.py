@@ -12,7 +12,7 @@ class DatabaseMatcher:
             user=user,
             password=password
         )
-        print(f"✅ PostgreSQL DatabaseMatcher conectado em {host}:{port}/{database}")
+        print(f"PostgreSQL DatabaseMatcher conectado em {host}:{port}/{database}")
     
     def find_best_offer(
         self, 
@@ -22,7 +22,7 @@ class DatabaseMatcher:
     ) -> Optional[Dict[str, Any]]:
         try:
             current_rate_decimal = current_rate / 100
-            print(f"🔍 Procurando oferta: tipo={financing_type}, taxa_atual={current_rate}% ({current_rate_decimal}), saldo={remaining_amount}")
+            print(f"Procurando oferta: tipo={financing_type}, taxa_atual={current_rate}% ({current_rate_decimal}), saldo={remaining_amount}")
 
             result = self.db.fetchone(
                 """
@@ -37,7 +37,7 @@ class DatabaseMatcher:
                 (financing_type, current_rate_decimal, remaining_amount)
             )
 
-            print(f"📊 Resultado da query: {result}")
+            print(f"Resultado da query: {result}")
 
             if result:
                 return {
@@ -50,16 +50,16 @@ class DatabaseMatcher:
             return None
 
         except Exception as e:
-            print(f"❌ Erro ao buscar melhor oferta: {e}")
+            print(f"Erro ao buscar melhor oferta: {e}")
             return None
     
     def get_all_banks(self) -> List[Dict[str, Any]]:
         try:
             results = self.db.fetchall("SELECT id, name FROM banks ORDER BY name")
-            print(f"🏦 Bancos encontrados: {len(results)}")
+            print(f"Bancos encontrados: {len(results)}")
             return results or []
         except Exception as e:
-            print(f"❌ Erro ao buscar bancos: {e}")
+            print(f"Erro ao buscar bancos: {e}")
             return []
 
     def check_existing_offer(
@@ -134,7 +134,7 @@ class DatabaseMatcher:
             )
             
             if not existing:
-                print(f"⚠️ Nenhuma oferta encontrada para atualizar (bank_id={bank_id}, user_id={user_id})")
+                print(f"Nenhuma oferta encontrada para atualizar (bank_id={bank_id}, user_id={user_id})")
                 return None
             
             record_id = existing['id'] if isinstance(existing, dict) else existing[0]
@@ -162,15 +162,15 @@ class DatabaseMatcher:
             )
 
             if rowcount > 0:
-                print(f"✅ Oferta atualizada: id={record_id}")
+                print(f"Oferta atualizada: id={record_id}")
                 return record_id
             else:
                 return None
 
         except Exception as e:
-            print(f"❌ Erro ao atualizar oferta: {e}")
+            print(f"Erro ao atualizar oferta: {e}")
             return None
     
     def close(self):
         self.db.close()
-        print("🔒 Conexão com o banco encerrada")
+        print("Conexão com o banco encerrada")

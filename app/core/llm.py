@@ -27,9 +27,7 @@ class LLMWrapper:
         self.openai_model = openai_model or model
         self.timeout_s = timeout_s
 
-    # ----------------------------------------------------
-    # API pública
-    # ----------------------------------------------------
+   
     def generate(self, prompt: str, system_prompt: Optional[str] = None) -> str:
         """
         Gera texto a partir de um prompt.
@@ -52,9 +50,7 @@ class LLMWrapper:
         else:
             raise ValueError(f"Provedor '{self.provider}' não suportado.")
 
-    # ----------------------------------------------------
-    # Implementações específicas
-    # ----------------------------------------------------
+   
     def _generate_ollama(self, prompt: str, system_prompt: Optional[str] = None) -> str:
         """
         Chamada ao Ollama via /api/generate.
@@ -117,9 +113,7 @@ class LLMWrapper:
         )
         return resp["choices"][0]["message"]["content"].strip()
 
-    # ----------------------------------------------------
-    # Utilidades opcionais
-    # ----------------------------------------------------
+
     @staticmethod
     def extract_json(text: str) -> Optional[Dict[str, Any]]:
         """

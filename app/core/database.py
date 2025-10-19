@@ -50,7 +50,6 @@ class Database:
         )
         print("PostgreSQL pool criado (%s:%s/%s)", self.host, self.port, self.database)
 
-    # ------------- internos -------------
     def _cursor_factory(self):
         return RealDictCursor if self.use_dict_cursor else None
 
@@ -66,7 +65,6 @@ class Database:
         finally:
             self._pool.putconn(conn)
 
-    # ------------- API básica -------------
     def execute(self, sql: str, params: Params = None) -> int:
         """
         Executa DML (INSERT/UPDATE/DELETE) com commit automático.
@@ -106,7 +104,6 @@ class Database:
         # cursor normal → tupla
         return row[0] if row else None
 
-    # ------------- transação explícita -------------
     @contextmanager
     def transaction(self):
         """
@@ -130,12 +127,11 @@ class Database:
         finally:
             self._pool.putconn(conn)
 
-    # ------------- utilidades -------------
     def healthcheck(self) -> bool:
         try:
             return self.fetchval("SELECT 1") == 1
         except Exception as e:
-            print("Healthcheck falhou: %s", e, exc_info=True)
+            print(f"Healthcheck falhou: {e}")
             return False
 
     def close(self):

@@ -62,26 +62,23 @@ class MessageMatcher:
     
     def calculate_remaining_amount(
         self,
-        total_value: float,              # PV (valor financiado)
-        installment_count: int,          # n
-        current_installment_number: int, # próxima parcela a pagar
-        system_type: str,                # 'SAC' ou 'PRICE'
-        monthly_rate: float,             # % a.m.
-        installment_amount: float        # PMT atual (se PRICE)
+        total_value: float,              
+        installment_count: int,          
+        current_installment_number: int, 
+        system_type: str,                
+        monthly_rate: float,            
+        installment_amount: float        
     ) -> float:
         i = monthly_rate / 100.0
         paid = max(current_installment_number - 1, 0)  # parcelas já pagas
 
         if system_type == 'SAC':
-            # amortização constante
             amort = total_value / installment_count
             saldo = max(total_value - amort * paid, 0.0)
             return saldo
 
-        # PRICE: forma robusta (evita depender de PMT arredondado)
         EPS = 1e-12
         if abs(i) < EPS:
-            # sem juros: saldo = PV - PMT * pagas
             return max(total_value - installment_amount * paid, 0.0)
 
         factor = (1 + i) ** paid
@@ -90,14 +87,14 @@ class MessageMatcher:
     
     def calculate_potential_savings(
         self,
-        remaining_amount: float,      # B_k (saldo devedor agora)
-        remaining_installments: int,  # n' (parcelas restantes)
-        current_rate: float,          # % a.m.
-        new_rate: float,              # % a.m.
+        remaining_amount: float,      
+        remaining_installments: int,  
+        current_rate: float,        
+        new_rate: float,             
         current_installment_amount: float,
-        system_type: str,             # 'PRICE' ou 'SAC'
-        total_value: float = None,    # PV (necessário para SAC)
-        installment_count: int = None # n (necessário para SAC)
+        system_type: str,            
+        total_value: float = None,    
+        installment_count: int = None 
     ) -> float:
         # Evitar divisão por zero
         if remaining_installments <= 0:
@@ -107,21 +104,16 @@ class MessageMatcher:
         i_current = current_rate / 100.0
         i_new = new_rate / 100.0
 
-        # Calcular total a pagar no cenário atual
         if system_type == 'PRICE':
-            # PRICE: parcela constante
             current_total_from_now = current_installment_amount * remaining_installments
-        else:  # SAC
-            # SAC exato: requer PV e n originais
+        else:  
             if total_value is None or installment_count is None:
-                # fallback seguro para não superestimar
                 return 0.0
-            A = float(total_value) / float(installment_count)  # amortização constante
+            A = float(total_value) / float(installment_count)  
             nrem = float(remaining_installments)
             Bk = float(remaining_amount)
             current_total_from_now = nrem * A + i_current * (nrem * Bk - A * (nrem * (nrem - 1) / 2.0))
 
-        # Calcular total com nova oferta (sempre PRICE na nova oferta)
         if abs(i_new) < EPS:
             new_pmt = remaining_amount / remaining_installments
         else:
@@ -142,7 +134,7 @@ class MessageMatcher:
             timestamp = message_value.get('timestamp', int(time.time()))
             
             financing_type = financing_info['type'].lower()
-            total_value = float(financing_info['value'])  # PV: valor financiado (não valor do bem se houve entrada)
+            total_value = float(financing_info['value'])  
             installment_count = agent_analysis['installment_count']
             current_installment_number = agent_analysis['current_installment_number']
             installment_amount = float(agent_analysis['installment_amount'])
@@ -205,10 +197,9 @@ class MessageMatcher:
             
             remaining_installments = max(installment_count - (current_installment_number - 1), 0)
             
-            # Calcular total restante a pagar
             if system_type == 'PRICE':
                 remaining_total_to_pay = installment_amount * remaining_installments
-            else:  # SAC exato
+            else:  
                 A = total_value / installment_count
                 i_rate = interest_rate / 100.0
                 remaining_total_to_pay = max(0.0,
@@ -224,10 +215,8 @@ class MessageMatcher:
             print(f"Current Monthly Rate Being Paid: {interest_rate:.4f}%")
             print("="*80 + "\n")
             
-            # NOTA: Verificar se financing_types.type espera 'PRICE'/'SAC' ou 'automobile'/'property'
-            # Se esperar produto, trocar por: financing_type=financing_type
             best_offer = self.database.find_best_offer(
-                financing_type=system_type,  # 'PRICE' ou 'SAC' 
+                financing_type=system_type,  
                 current_rate=interest_rate,
                 remaining_amount=remaining_amount
             )

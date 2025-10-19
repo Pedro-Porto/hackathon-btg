@@ -83,7 +83,7 @@ class MessageProcessor:
                 print(f"No matching transaction for source_id={source_id}, user_id={user_id}")
                 
         except Exception as e:
-            print(f"Error processing message: {e}", exc_info=True)
+            print(f"Error processing message: {e}")
     
     def process_bank_and_offer(self, agent_analysis: Dict[str, Any], user_id: int):
         try:
@@ -121,7 +121,7 @@ class MessageProcessor:
             )
             
         except Exception as e:
-            print(f"Error processing bank and offer: {e}", exc_info=True)
+            print(f"Error processing bank and offer: {e}")
     
     def check_bank_with_llm(self, company_name: str, banks: list) -> int:
         try:
@@ -160,6 +160,6 @@ OR
             return None
             
         except Exception as e:
-            print(f"Error checking bank with LLM: {e}", exc_info=True)
+            print(f"Error checking bank with LLM: {e}")
             return None
 

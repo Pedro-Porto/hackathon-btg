@@ -1,18 +1,14 @@
-# file: api/main.py
 import os
 import sys
 import base64
 import requests
 from flask import Flask, request, jsonify
 
-# permite importar ingest/ e core/ a partir da raiz do projeto
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from ingest import RawPublisher  # requer ingest/__init__.py com: from .main import RawPublisher
+from ingest import RawPublisher  
 from core.kafka import KafkaJSON
 
-# -------------------------------------------------------------------
-# Config
-# -------------------------------------------------------------------
+
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 if not BOT_TOKEN:
     raise RuntimeError("Defina BOT_TOKEN no ambiente.")
@@ -24,15 +20,12 @@ app = Flask(__name__)
 publisher = RawPublisher(auto_connect=True)
 kafka = KafkaJSON(broker=os.getenv("KAFKA_BROKER_URL", "localhost:29092"), group_id="btg-api-group")
 
-# Memória simples
-user_states = {}            # estado por source_id (agora!)
+user_states = {}          
 processed_callbacks = set()
 processing_chats = set()
 verify_state = {}
 
-# -------------------------------------------------------------------
-# Utilitários
-# -------------------------------------------------------------------
+
 def extract_ids_from_update(update: dict):
     """Extrai chat_id (Telegram) e source_id (usuário real)"""
     msg = update.get("message") or {}
@@ -43,9 +36,7 @@ def extract_ids_from_update(update: dict):
     source_id = msg_from.get("id")
     return chat_id, source_id
 
-# -------------------------------------------------------------------
-# Funções Telegram
-# -------------------------------------------------------------------
+
 def tg_send_message(chat_id: int, text: str) -> None:
     try:
         requests.post(f"{TELEGRAM_API}/sendMessage",
@@ -152,9 +143,7 @@ def processar_escolha_valor(chat_id, source_id, valor_texto):
     # tg_send_message(chat_id, mensagem_final)
     user_states.pop(source_id, None)
 
-# -------------------------------------------------------------------
-# Processar arquivo: Telegram → Kafka
-# -------------------------------------------------------------------
+
 def processar_arquivo(file_id: str, chat_id: int, source_id: int, attachment_type: str) -> None:
     blob = tg_get_file_bytes(file_id)
     b64 = base64.b64encode(blob).decode("ascii")
@@ -165,9 +154,7 @@ def processar_arquivo(file_id: str, chat_id: int, source_id: int, attachment_typ
     )
     tg_send_message(chat_id, "Estou lendo a sua imagem, aguarde só um momento.")
 
-# -------------------------------------------------------------------
-# WEBHOOK TELEGRAM
-# -------------------------------------------------------------------
+
 @app.route("/telegram-webhook", methods=["POST"])
 def telegram_webhook():
     update = request.json or {}
@@ -205,14 +192,12 @@ def telegram_webhook():
                       json={"callback_query_id": callback_id}, timeout=15)
         return jsonify(success=True)
 
-    # Mensagens comuns
     msg = update.get("message") or {}
     if not chat_id:
         return jsonify(success=True)
 
     state = user_states.get(source_id)
 
-    # Entrada de valor
     if state and state.startswith("tipo_escolhido_") and "text" in msg:
         processar_escolha_valor(chat_id, source_id, (msg["text"] or "").strip())
         return jsonify(success=True)
@@ -226,7 +211,6 @@ def telegram_webhook():
         processar_arquivo(file_id, chat_id, source_id, "image")
         return jsonify(success=True)
 
-    # Documento
     if "document" in msg:
         if state:
             tg_send_message(chat_id, "Recebi um novo arquivo! Mas antes de continuar com ele, preciso terminar essa parte da conversa. Pode me confirmar as informações primeiro?")
@@ -237,9 +221,7 @@ def telegram_webhook():
 
     return jsonify(success=True)
 
-# -------------------------------------------------------------------
-# API /processar
-# -------------------------------------------------------------------
+
 @app.route("/api/processar", methods=["POST"])
 def processar_dados():
     data = request.json or {}
@@ -268,9 +250,7 @@ def processar_dados():
 
     return jsonify({"status": "sucesso", "mensagem": "Pagamento confirmado! Que bom ver tudo certo por aqui!", "dados_processados": data}), 200
 
-# -------------------------------------------------------------------
-# API /send_message
-# -------------------------------------------------------------------
+
 @app.route("/api/send_message", methods=["POST"])
 def api_send_message():
     data = request.json or {}
@@ -281,15 +261,10 @@ def api_send_message():
     tg_send_message(chat_id, text)
     return jsonify({"status": "ok", "mensagem": "enviada"}), 200
 
-# -------------------------------------------------------------------
-# Healthcheck
-# -------------------------------------------------------------------
+
 @app.route("/health", methods=["GET"])
 def health():
     return jsonify(ok=True)
 
-# -------------------------------------------------------------------
-# Entry-point
-# -------------------------------------------------------------------
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "3000")), debug=True)

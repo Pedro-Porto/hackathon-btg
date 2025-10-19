@@ -9,9 +9,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from core.llm import LLMWrapper
 from core.kafka import KafkaJSON
 
-# -----------------------------
-# Config
-# -----------------------------
+
 INPUT_TOPIC = os.getenv("INPUT_TOPIC", "btg.parsed")
 OUTPUT_TOPIC = os.getenv("OUTPUT_TOPIC", "btg.interpreted")
 KAFKA_BOOTSTRAP = os.getenv("KAFKA_BOOTSTRAP", "localhost:29092")
@@ -23,9 +21,6 @@ LLM_PROVIDER = os.getenv("LLM_PROVIDER", "ollama")
 LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.0"))
 DEBUG = os.getenv("DEBUG", "0") == "1"
 
-# -----------------------------
-# Helpers
-# -----------------------------
 def extract_brl_amount(text: str) -> Optional[float]:
     """
     Extrai um valor monetário de um texto:
@@ -94,7 +89,6 @@ def find_amount(att: List[Dict[str, Any]]) -> Optional[float]:
             print(f"[DBG] amount by label score: label='{best[3]}' value='{best[4]}' -> {best[2]}")
         return best[2]
 
-    # fallback geral: qualquer valor monetário com maior confiança
     sweep = []
     for it in att:
         value = it.get("value_text") or ""
@@ -121,7 +115,6 @@ def find_installments(att: List[Dict[str, Any]]) -> Tuple[Optional[int], Optiona
     - Ignora 'VENCIMENTO'
     - Valida 1 <= n <= m <= 240
     """
-    # aceita: 45/48, 45-48, 45／48
     SEP = r"[\/\-\uFF0F]"  # barra, hífen, unicode slash (FULLWIDTH)
     RX = re.compile(rf"(\d{{1,3}})\s*{SEP}\s*(\d{{1,3}})")
 
@@ -233,9 +226,6 @@ def send_json(k: KafkaJSON, topic: str, obj: Dict[str, Any]) -> None:
         raise AttributeError("KafkaJSON não possui 'send' nem 'publish'.")
 
 
-# -----------------------------
-# LLM (apenas company + amount) — opcional
-# -----------------------------
 SYSTEM = "Você extrai dados de boletos/contratos. Responda apenas JSON válido."
 USER_TPL = """Você é um extrator de dados de documentos bancários.
 
@@ -314,9 +304,7 @@ def call_llm(payload: Dict[str, Any], llm: LLMWrapper) -> Optional[Dict[str, Any
         return None
 
 
-# -----------------------------
-# Pipeline
-# -----------------------------
+
 def build_output(input_obj: Dict[str, Any], analysis: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "source_id": int(input_obj.get("source_id", 0)),
@@ -368,7 +356,6 @@ def make_handler(k: KafkaJSON, llm: LLMWrapper) -> Callable[[str, Dict[str, Any]
 
 
 def main():
-    # LLM (usa seu wrapper)
     llm = LLMWrapper(
         provider=LLM_PROVIDER,
         model=OLLAMA_MODEL,
@@ -376,11 +363,10 @@ def main():
         ollama_base_url=OLLAMA_BASE_URL,
     )
 
-    # Kafka
+    
     k = KafkaJSON(KAFKA_BOOTSTRAP, GROUP_ID)
     k.subscribe(INPUT_TOPIC)
 
-    # loop
     k.loop(make_handler(k, llm))
 
 

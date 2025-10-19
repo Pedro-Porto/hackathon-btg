@@ -22,7 +22,7 @@ kafka = None
 
 
 def on_msg(topic, data):
-    print("📩 Recebido do tópico:", topic, "=>")
+    print("Recebido do tópico:", topic, "=>")
     image64 = data.get("attachment_data")
     image_bytes = base64.b64decode(image64)
 
@@ -36,7 +36,7 @@ def on_msg(topic, data):
             "timestamp": data.get("timestamp"),
         },
     )
-    print("✅ Resultado enviado para", OUTPUT_TOPIC)
+    print("Resultado enviado para", OUTPUT_TOPIC)
 
 
 def main():

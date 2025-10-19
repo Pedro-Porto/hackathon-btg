@@ -33,7 +33,6 @@ class RawPublisher:
         if auto_connect:
             self.connect()
 
-    # --------- ciclo de vida ----------
     def connect(self) -> None:
         """Estabelece a conexão com o Kafka usando KafkaJSON."""
         print(f"Tentando conectar ao broker Kafka em {self.broker_url}...")
@@ -53,7 +52,6 @@ class RawPublisher:
             except Exception:
                 pass
 
-    # permite usar: with RawPublisher(...) as pub: ...
     def __enter__(self):
         if self._kafka is None:
             self.connect()
@@ -62,7 +60,6 @@ class RawPublisher:
     def __exit__(self, exc_type, exc, tb):
         self.close()
 
-    # --------- helpers ----------
     @staticmethod
     def _now_ms() -> int:
         return int(time.time() * 1000)
@@ -72,7 +69,6 @@ class RawPublisher:
             raise RuntimeError("Kafka não conectado. Chame connect() primeiro.")
         return self._kafka
 
-    # --------- APIs de publicação ----------
     def publish(
         self,
         *,

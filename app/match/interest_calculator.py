@@ -28,7 +28,7 @@ class InterestCalculator:
             return monthly_interest_rate * 100
             
         except Exception as e:
-            print(f"Error calculating SAC interest rate: {e}", exc_info=True)
+            print(f"Error calculating SAC interest rate: {e}")
             return None
     
     @staticmethod
@@ -67,6 +67,6 @@ class InterestCalculator:
             return final_rate * 100
             
         except Exception as e:
-            print(f"Error calculating PRICE interest rate: {e}", exc_info=True)
+            print(f"Error calculating PRICE interest rate: {e}")
             return None
 

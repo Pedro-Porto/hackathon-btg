@@ -104,6 +104,6 @@ class MessageEnricher:
             return enriched_message
                 
         except Exception as e:
-            print(f"Error enriching message: {e}", exc_info=True)
+            print(f"Error enriching message: {e}")
             return None
 
