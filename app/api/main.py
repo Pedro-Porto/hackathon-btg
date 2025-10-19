@@ -247,7 +247,7 @@ def processar_dados():
         user_states[source_id] = "awaiting_property_type"
         return jsonify({"status": "sucesso",
                         "mensagem": f"Fluxo iniciado para source_id {source_id}"}), 200
-    tg_send_message_with_keyboard(chat_id,
+    tg_send_message(chat_id,
             "Pagamento confirmado! Que bom ver tudo certo por aqui!")
     return jsonify({"status": "sucesso", "mensagem": "Pagamento confirmado! Que bom ver tudo certo por aqui!", "dados_processados": data}), 200
 
