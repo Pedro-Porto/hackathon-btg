@@ -19,6 +19,27 @@ LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.3"))
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "https://ollama.pedro-porto.com")
 
 
+import re
+
+_SYSTEM_RE   = re.compile(r"SYSTEM\s*=\s*\(.*?\)", re.DOTALL)
+_NO_RE       = re.compile(r"NO_OFFER_TPL\s*=\s*\"\"\".*?\"\"\"", re.DOTALL)
+_YES_RE      = re.compile(r"YES_OFFER_TPL\s*=\s*\"\"\".*?\"\"\"", re.DOTALL)
+
+def sanitize_llm_message(text: str) -> str:
+    cleaned = _SYSTEM_RE.sub("", text)
+    cleaned = _NO_RE.sub("", cleaned)
+    cleaned = _YES_RE.sub("", cleaned)
+
+    for marker in ("\nSYSTEM", "SYSTEM", "Dados do cliente:", "Oferta detectada:"):
+        if marker in cleaned:
+            cleaned = cleaned.split(marker, 1)[0]
+
+    cleaned = re.sub(r"^\s*Aqui está a mensagem:\s*\n?", "", cleaned, flags=re.IGNORECASE)
+
+    cleaned = cleaned.strip()
+
+    return cleaned
+
 
 def ts_ms() -> int:
     return int(time.time() * 1000)
@@ -110,6 +131,7 @@ def compose_with_llm(llm: LLMWrapper, payload: Dict[str, Any]) -> str:
         )
 
     text = llm.generate(prompt=prompt, system_prompt=SYSTEM).strip()
+    text = sanitize_llm_message(text)
     return text
 
 
