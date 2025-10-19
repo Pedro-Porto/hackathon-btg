@@ -73,15 +73,45 @@ class DatabaseMatcher:
         offered_interest_rate: Optional[float] = None
     ) -> bool:
         try:
+            print(f"\n{'='*80}")
+            print(f"🔍 VERIFICANDO DUPLICATA")
+            print(f"{'='*80}")
+            print(f"Parâmetros de busca:")
+            print(f"  bank_id: {bank_id}")
+            print(f"  user_id: {user_id}")
+            print(f"  asset_value: {asset_value}")
+            print(f"  monthly_interest_rate: {monthly_interest_rate}")
+            print(f"  installments_count: {installments_count}")
+            print(f"  offered: {offered}")
+            print(f"  offered_interest_rate: {offered_interest_rate}")
+            
             if not offered:
+                print(f"🔍 Não é oferta (offered=False), permitindo envio")
                 return False
             
             if offered_interest_rate is None:
+                print(f"🔍 Sem taxa oferecida, permitindo envio")
                 return False
+            
+            all_offers = self.db.fetchall(
+                """
+                SELECT id, bank_id, user_id, asset_value, monthly_interest_rate, 
+                       installments_count, offered, offered_interest_rate, type
+                FROM bank_financing_offers
+                ORDER BY id DESC
+                LIMIT 10
+                """
+            )
+            
+            print(f"\n📋 Últimas 10 entradas na tabela bank_financing_offers:")
+            for offer in all_offers:
+                print(f"  {offer}")
+            
+            print(f"\n🔍 Buscando duplicata exata...")
             
             result = self.db.fetchone(
                 """
-                SELECT id FROM bank_financing_offers
+                SELECT id, asset_value, monthly_interest_rate, offered_interest_rate FROM bank_financing_offers
                 WHERE bank_id = %s
                   AND user_id = %s
                   AND asset_value = %s
@@ -96,12 +126,19 @@ class DatabaseMatcher:
             )
             
             if result:
+                print(f"✅ Oferta duplicada encontrada: {result}")
                 print(f"Oferta já existe com os mesmos dados (não enviando duplicata)")
+                print(f"{'='*80}\n")
                 return True
+            
+            print(f"🔍 Nenhuma oferta duplicada encontrada, permitindo envio")
+            print(f"{'='*80}\n")
             return False
             
         except Exception as e:
             print(f"Erro ao verificar oferta existente: {e}")
+            import traceback
+            traceback.print_exc()
             return False
     
     def update_bank_financing_offer(
