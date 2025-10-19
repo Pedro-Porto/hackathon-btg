@@ -1,0 +1,12 @@
+# build web app
+FROM node:23-slim AS builder
+WORKDIR /app/front
+COPY .env.front .env
+COPY ./app/front .
+RUN npm install
+RUN npm run build
+
+# nginx
+FROM nginx:alpine
+COPY ./nginx/ /etc/nginx/conf.d/
+COPY --from=builder /front/dist /usr/share/nginx/html

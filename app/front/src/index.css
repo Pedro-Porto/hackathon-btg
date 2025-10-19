@@ -1,0 +1,120 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    /* BTG Pactual Theme - Premium Financial Design */
+    --background: 220 20% 96%;
+    --foreground: 220 15% 20%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 215 25% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 25% 15%;
+
+    /* BTG Blue as primary - matching their brand */
+    --primary: 220 100% 31%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Lighter blue for secondary */
+    --secondary: 220 90% 50%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 220 15% 94%;
+    --muted-foreground: 220 10% 50%;
+
+    /* Success green for positive metrics */
+    --accent: 152 76% 36%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 215 20% 88%;
+    --input: 215 20% 88%;
+    --ring: 45 90% 55%;
+
+    --radius: 0.5rem;
+
+    /* Custom BTG tokens */
+    --btg-blue: 220 100% 31%;
+    --btg-blue-light: 220 90% 50%;
+    --btg-blue-dark: 220 100% 20%;
+    --btg-success: 152 76% 36%;
+    --btg-gray: 220 10% 50%;
+    
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(220 100% 20%) 0%, hsl(220 100% 31%) 100%);
+    --gradient-header: linear-gradient(90deg, hsl(220 100% 31%) 0%, hsl(220 90% 40%) 100%);
+    --gradient-subtle: linear-gradient(180deg, hsl(220 20% 96%) 0%, hsl(220 15% 94%) 100%);
+    
+    /* Shadows */
+    --shadow-elegant: 0 10px 30px -10px hsl(215 85% 16% / 0.15);
+    --shadow-card: 0 4px 20px -4px hsl(215 85% 16% / 0.1);
+    --shadow-gold: 0 4px 20px -4px hsl(45 90% 55% / 0.25);
+
+    --sidebar-background: 215 85% 16%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 45 90% 55%;
+    --sidebar-primary-foreground: 215 85% 16%;
+    --sidebar-accent: 215 75% 25%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 215 75% 25%;
+    --sidebar-ring: 45 90% 55%;
+  }
+
+  .dark {
+    --background: 215 85% 8%;
+    --foreground: 0 0% 98%;
+
+    --card: 215 80% 12%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 215 80% 12%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 45 90% 55%;
+    --primary-foreground: 215 85% 16%;
+
+    --secondary: 215 75% 25%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 215 70% 18%;
+    --muted-foreground: 215 15% 65%;
+
+    --accent: 45 90% 55%;
+    --accent-foreground: 215 85% 16%;
+
+    --destructive: 0 62.8% 50.6%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 215 70% 18%;
+    --input: 215 70% 18%;
+    --ring: 45 90% 55%;
+
+    --sidebar-background: 215 85% 16%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 45 90% 55%;
+    --sidebar-primary-foreground: 215 85% 16%;
+    --sidebar-accent: 215 75% 25%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 215 75% 25%;
+    --sidebar-ring: 45 90% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
