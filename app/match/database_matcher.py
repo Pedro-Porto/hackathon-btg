@@ -96,8 +96,9 @@ class DatabaseMatcher:
             )
             
             if result:
-                print(f"Oferta já existe com os mesmos dados (não enviando duplicata)")
+                print(f"Oferta duplicada detectada (não enviando)")
                 return True
+            
             return False
             
         except Exception as e:
@@ -120,54 +121,56 @@ class DatabaseMatcher:
         savings_amount: Optional[float] = None
     ) -> Optional[int]:
         try:
-            print(f"💾 Atualizando oferta para banco {bank_id}, usuário {user_id}...")
-
-            with self.db.transaction() as cur:
-                cur.execute(
-                    """
-                    UPDATE bank_financing_offers 
-                    SET asset_value = %s,
-                        monthly_interest_rate = %s,
-                        total_value_with_interest = %s,
-                        type = %s,
-                        offered = %s,
-                        offered_interest_rate = %s,
-                        offer_id = %s,
-                        financed_amount = %s,
-                        savings_amount = %s
-                    WHERE id = (
-                        SELECT id 
-                        FROM bank_financing_offers
-                        WHERE bank_id = %s 
-                        AND user_id = %s
-                        AND installments_count = %s
-                        AND offered = FALSE
-                        ORDER BY created_at DESC
-                        LIMIT 1
-                    )
-                    RETURNING id
-                    """,
-                    (
-                        asset_value, monthly_interest_rate, total_value_with_interest,
-                        financing_type, offered,
-                        offered_interest_rate, offer_id, financed_amount, savings_amount,
-                        bank_id, user_id, installments_count
-                    )
-                )
-                result = cur.fetchone()
-
-            if result:
-                offer_id = result["id"] if isinstance(result, dict) else result[0]
-                print(f"✅ Oferta atualizada: id={offer_id}")
-                return offer_id
-            else:
+            existing = self.db.fetchone(
+                """
+                SELECT id, offered FROM bank_financing_offers
+                WHERE bank_id = %s 
+                AND user_id = %s
+                AND installments_count = %s
+                ORDER BY created_at DESC
+                LIMIT 1
+                """,
+                (bank_id, user_id, installments_count)
+            )
+            
+            if not existing:
                 print(f"⚠️ Nenhuma oferta encontrada para atualizar (bank_id={bank_id}, user_id={user_id})")
+                return None
+            
+            record_id = existing['id'] if isinstance(existing, dict) else existing[0]
+
+            rowcount = self.db.execute(
+                """
+                UPDATE bank_financing_offers 
+                SET asset_value = %s,
+                    monthly_interest_rate = %s,
+                    total_value_with_interest = %s,
+                    type = %s,
+                    offered = %s,
+                    offered_interest_rate = %s,
+                    offer_id = %s,
+                    financed_amount = %s,
+                    savings_amount = %s
+                WHERE id = %s
+                """,
+                (
+                    asset_value, monthly_interest_rate, total_value_with_interest,
+                    financing_type, offered,
+                    offered_interest_rate, offer_id, financed_amount, savings_amount,
+                    record_id
+                )
+            )
+
+            if rowcount > 0:
+                print(f"✅ Oferta atualizada: id={record_id}")
+                return record_id
+            else:
                 return None
 
         except Exception as e:
-            print(f"Erro ao atualizar oferta: {e}")
+            print(f"❌ Erro ao atualizar oferta: {e}")
             return None
     
     def close(self):
         self.db.close()
-        print("Conexão com o banco encerrada")
+        print("🔒 Conexão com o banco encerrada")

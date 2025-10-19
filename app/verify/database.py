@@ -68,17 +68,22 @@ class DatabaseManager:
 
     def add_bank(self, name: str) -> Optional[int]:
         try:
-            with self.db.transaction() as cur:
-                cur.execute(
-                    "INSERT INTO banks (name) VALUES (%s) RETURNING id",
+            rowcount = self.db.execute(
+                "INSERT INTO banks (name) VALUES (%s)",
+                (name,)
+            )
+            
+            if rowcount > 0:
+                result = self.db.fetchone(
+                    "SELECT id FROM banks WHERE name = %s ORDER BY id DESC LIMIT 1",
                     (name,)
                 )
-                result = cur.fetchone()
+                
                 if result:
                     bank_id = result['id'] if isinstance(result, dict) else result[0]
                     print(f"✅ Novo banco adicionado: {name} (id={bank_id})")
                     return bank_id
-                return None
+            return None
         except Exception as e:
             print(f"❌ Erro ao adicionar banco: {e}")
             return None
@@ -109,26 +114,29 @@ class DatabaseManager:
                 print(f"Oferta de financiamento já existe: id={existing_id} (não duplicando)")
                 return existing_id
             
-            with self.db.transaction() as cur:
-                cur.execute(
-                    """
-                    INSERT INTO bank_financing_offers
-                        (bank_id, user_id, month, year,
-                         asset_value, monthly_interest_rate, total_value_with_interest,
-                         installments_count, type)
-                    VALUES (%s, %s, %s, %s,
-                            0, 0, 0,
-                            %s, 'UNKNOWN')
-                    RETURNING id
-                    """,
+            self.db.execute(
+                """
+                INSERT INTO bank_financing_offers
                     (bank_id, user_id, month, year, installments_count)
-                )
-                result = cur.fetchone()
-                if result:
-                    offer_id = result['id'] if isinstance(result, dict) else result[0]
-                    print(f"✅ Oferta de financiamento inserida: id={offer_id}")
-                    return offer_id
-                return None
+                VALUES (%s, %s, %s, %s, %s)
+                """,
+                (bank_id, user_id, month, year, installments_count)
+            )
+            
+            result = self.db.fetchone(
+                """
+                SELECT id FROM bank_financing_offers
+                WHERE bank_id = %s AND user_id = %s AND month = %s AND year = %s AND installments_count = %s
+                ORDER BY id DESC LIMIT 1
+                """,
+                (bank_id, user_id, month, year, installments_count)
+            )
+            
+            if result:
+                offer_id = result['id'] if isinstance(result, dict) else result[0]
+                print(f"✅ Oferta de financiamento inserida: id={offer_id}")
+                return offer_id
+            return None
         except Exception as e:
             print(f"❌ Erro ao inserir oferta de financiamento: {e}")
             return None
